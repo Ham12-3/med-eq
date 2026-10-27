@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+
+# env and secrets
+.env*
+!.env.example
+
+# testing
+coverage/
+playwright-report/
+test-results/
+
+# build
+dist/
+*.tsbuildinfo
+
+# blender autosaves and backups
+*.blend1
+*.blend2
+
+# os and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

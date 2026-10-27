@@ -1,0 +1,45 @@
+# MedAsset: medical equipment asset and maintenance tracker
+
+## What this is
+A web app for hospital clinical engineering teams (UK, MHRA "Managing Medical Devices" 2021).
+It tracks every device, where it was last scanned, PPM due dates, repairs, safety tests and safety notices.
+A 3D building view shows each device in its last known room, coloured by status.
+
+## Stack
+Next.js App Router, TypeScript strict, PostgreSQL + Drizzle, Tailwind + shadcn/ui,
+React Three Fiber + drei, Vitest, Playwright. Package manager: pnpm.
+
+## Non-negotiable rules
+- Never delete or overwrite records. Every change writes to audit_log (old value, new value, user, time).
+- An asset with overdue PPM, a failed safety test or an open safety notice is "Do not use" everywhere.
+- A work order cannot close until every required test in its template has a result.
+- All synthetic data only. No real patient data, ever.
+- No real manufacturer names or logos in data, images or 3D models. Use generic names.
+
+## 3D conventions
+- Units: metres. Y up in three.js, Z up in Blender (export with +Y up).
+- Room meshes are named room_<GLN>. Device models are named model_<device_model_slug>.
+- Final models live in public/models as .glb with Draco geometry and KTX2 textures.
+- Target: under 30k triangles per device, textures 2K max.
+
+## Project layout
+- `app/` Next.js routes
+- `db/` Drizzle schema, migrations, seed
+- `lib/rules/` EM score, PPM due dates, do-not-use logic
+- `components/3d/` React Three Fiber scene, loaders, highlights
+- `public/models/` final .glb files the app loads
+- `art/refs/` Nano Banana reference images
+- `art/video/` Veo clips
+- `art/blend/` .blend source files
+- `art/prompts/` every image and video prompt used
+- `scripts/` gemini-images.ts, gemini-video.ts, optimise-glb.sh
+
+## Tools in this project
+- Blender is connected via the MCP for Blender server. Use `look` after every change to check the result.
+- Image and video generation goes through scripts/ using the Gemini API (GEMINI_API_KEY). Log every prompt in art/prompts/.
+- Use Chrome to test the running app at localhost:3000.
+
+## How to work
+- Plan first, then build in small steps. Run tests before saying a step is done.
+- Ask before adding a new dependency.
+- PLAN.md holds the schema, status rules, route map and milestones. Follow it.
