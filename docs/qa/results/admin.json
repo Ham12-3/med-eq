@@ -20,13 +20,13 @@
   {
     "task": "4. Manage users and roles",
     "screen": "admin-4.png",
-    "ok": false,
-    "note": "expect(locator).toBeVisible() failed"
+    "ok": true,
+    "note": "Added a ward user, moved them to the library role; self-lockout refused"
   },
   {
     "task": "5. Manage reference data: models, rooms, templates",
     "screen": "admin-5.png",
     "ok": true,
-    "note": "Models only; no pages for rooms or test templates"
+    "note": "Models only; no pages for rooms or test templates yet"
   }
 ]

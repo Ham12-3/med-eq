@@ -26,7 +26,7 @@
   {
     "task": "5. Accept a new device into service",
     "screen": "technician-5.png",
-    "ok": false,
-    "note": "expect(locator).toBeVisible() failed"
+    "ok": true,
+    "note": "Acceptance WO-000847: acceptance job opened, device Do not use until it passes"
   }
 ]

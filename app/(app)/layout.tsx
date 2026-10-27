@@ -21,6 +21,7 @@ const NAV: { href: string; label: string; action: Action }[] = [
   { href: "/incidents", label: "Incidents", action: "incident.manage" },
   { href: "/models", label: "Models", action: "model.manage" },
   { href: "/reports", label: "Reports", action: "report.view" },
+  { href: "/admin/users", label: "Users", action: "user.manage" },
   { href: "/admin/audit", label: "Audit", action: "audit.export" },
 ];
 

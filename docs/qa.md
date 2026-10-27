@@ -4,7 +4,10 @@ Run on 27 Oct 2026. Each role's top 5 tasks from PLAN.md section 1 were walked i
 
 Rerun it with `pnpm qa:roles`. The script ([qa/roles.qa.ts](../qa/roles.qa.ts)) uses the end-to-end test server and database, so none of its writes reach development data. It saves a screenshot for every task in `docs/qa/screens/`, and records what it saw in `docs/qa/results/<role>.json`.
 
-**Result: 23 of 25 tasks work.** The other two need pages that the route map lists but that haven't been built yet: `/assets/new` and `/admin/users`. During QA I also found and fixed two problems: the main menu wrapped onto two lines, and ward staff had no list of the devices on their ward.
+**Result: all 25 tasks work.** The first pass found 23 working; the other two needed pages the route map listed but that hadn't been built: `/assets/new` and `/admin/users`. Both have since been built and walked. QA also found and fixed three smaller problems:
+- the main menu wrapped onto two lines;
+- ward staff had no list of the devices on their ward;
+- after saving a user's role, the page still showed the old one.
 
 ## Technician
 
@@ -14,7 +17,7 @@ Rerun it with `pnpm qa:roles`. The script ([qa/roles.qa.ts](../qa/roles.qa.ts)) 
 | 2. Scan a device to open its record or job | Works. A typed GIAI shows "Safe to use" | [technician-2](qa/screens/technician-2.png) |
 | 3. Complete the PPM checklist | Works. WO-000790 started, inspection saved, 10 tests recorded | [technician-3](qa/screens/technician-3.png) |
 | 4. Close the job and print the SERVICED label | Works. "Returned to use", and the label PDF downloads | [technician-4](qa/screens/technician-4.png) |
-| 5. Accept a new device into service | **Missing.** `/assets/new` returns 404 | [technician-5](qa/screens/technician-5.png) |
+| 5. Accept a new device into service | **Built after the first pass.** `/assets/new` registers a syringe driver, gives it the model's next GIAI and books it into the EBME workshop. It shows as Do not use, and its acceptance job opens in the technician's queue | [technician-5](qa/screens/technician-5.png) |
 
 ## Engineering manager
 
@@ -53,7 +56,7 @@ Rerun it with `pnpm qa:roles`. The script ([qa/roles.qa.ts](../qa/roles.qa.ts)) 
 | 1. Log an incident and flag a Yellow Card report | Works. The incident is logged, and the Yellow Card reference and date are saved | [admin-1](qa/screens/admin-1.png) |
 | 2. Log a safety notice and track matched devices | Works. FSN/QA/0001 matched 15 devices, each with a recall job | [admin-2](qa/screens/admin-2.png) |
 | 3. Export audit evidence for a device | Works. 39 entries for the device; the CSV downloads | [admin-3](qa/screens/admin-3.png) |
-| 4. Manage users and roles | **Missing.** `/admin/users` returns 404 | [admin-4](qa/screens/admin-4.png) |
+| 4. Manage users and roles | **Built after the first pass.** `/admin/users` adds a ward user and moves them to the library role. Making yourself inactive is refused | [admin-4](qa/screens/admin-4.png) |
 | 5. Manage reference data: models, rooms, templates | **Partly.** Models can be edited and re-scored. There are no pages for rooms or test templates; those come from the seed | [admin-5](qa/screens/admin-5.png) |
 
 ## Findings
@@ -62,16 +65,20 @@ Rerun it with `pnpm qa:roles`. The script ([qa/roles.qa.ts](../qa/roles.qa.ts)) 
 
 1. **The main menu wrapped onto two lines** for the manager and admin, whose menus have 10 to 13 links. The header now has two rows at every width: the name and the "Sign out" button on the first, and the menu on its own row below.
 2. **Ward staff could not see the devices on their ward.** The ward home page now lists every device last seen in the nurse's department's rooms. They are grouped by room in collapsible sections, each with its status badge and a link to the device page.
+3. **`/assets/new` was missing (technician task 5).** A technician enters the model, serial number and owning department. The device code can be typed from the label or left blank for the model's next number; codes must carry the hospital's own `0299999` prefix. The device starts in acceptance, in the EBME workshop, with an acceptance job due in 14 days and assigned to whoever registered it. Passing that job puts it into service and starts its PPM schedule.
+4. **`/admin/users` was missing (admin task 4).** It lists users, adds new ones, and changes a user's role, department and whether they can sign in. Nobody is deleted. The page refuses three changes:
+   - an admin making themselves inactive, or removing their own admin role;
+   - removing the last active admin;
+   - giving a ward user no department.
+5. **A saved user still showed their old role** until the page was reloaded. The row now redraws with the saved values.
 
 ### Still open
 
 | # | Finding | Role task | Size |
 |---|---|---|---|
-| 1 | `/assets/new` is not built. A new device can't be registered and its acceptance job opened from the app | Technician 5 | Medium: a form, a GIAI check, and an acceptance job from the model's template |
-| 2 | `/admin/users` is not built. Users and roles can only change through the seed | Admin 4 | Medium: a list, plus role and active changes through `authorizedWrite`, audited |
-| 3 | There are no pages for rooms or test templates | Admin 5 | Medium. Rooms also feed the 3D map and the GLN labels |
-| 4 | Page widths vary. The dashboard, models page and audit log are wider than the header, so their left edges don't line up with it | All | Small |
-| 5 | Some seeded library loans have been out for nearly two years (703 days). That's a quirk of the seed, but it makes the chase list long | Library 4 | Small: cap loan ages in the seed |
-| 6 | Carried over from M3: no optional fault photo (needs file storage) and no way to cancel a job | Ward 1, technician | Medium |
+| 1 | There are no pages for rooms or test templates | Admin 5 | Medium. Rooms also feed the 3D map and the GLN labels |
+| 2 | Page widths vary. The dashboard, models page and audit log are wider than the header, so their left edges don't line up with it | All | Small |
+| 3 | Some seeded library loans have been out for nearly two years (703 days). That's a quirk of the seed, but it makes the chase list long | Library 4 | Small: cap loan ages in the seed |
+| 4 | Carried over from M3: no optional fault photo (needs file storage) and no way to cancel a job | Ward 1, technician | Medium |
 
 The art track (the Blender building, device models, images and video) is not part of this QA. It needs Blender with its MCP server and a `GEMINI_API_KEY`.

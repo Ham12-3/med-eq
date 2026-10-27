@@ -828,11 +828,9 @@ Run each role's top tasks in Chrome. Write `docs/qa.md` with screenshots.
 
 **First pass done (27 Oct 2026).** `pnpm qa:roles` walks all 25 tasks on the test database and saves screenshots. The full write-up is in [docs/qa.md](docs/qa.md).
 
-- **23 of 25 tasks work.**
+- **All 25 tasks work.** The first pass found 23. `/assets/new` and `/admin/users` were built afterwards: device registration with its acceptance job, and users and roles with lock-out guards. Both have database tests.
 - **Fixed during QA:** the main menu now sits on its own row, so it no longer wraps for the manager and admin. The ward home lists the devices on the nurse's ward, by room.
 - **Still open:**
-  - `/assets/new` (technician task 5);
-  - `/admin/users` (admin task 4);
   - pages for rooms and test templates;
   - uneven page widths;
   - very old seeded library loans;

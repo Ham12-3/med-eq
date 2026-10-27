@@ -102,7 +102,16 @@ test("technician", async ({ page }) => {
     return "Returned to use; label PDF downloads";
   });
   await task(page, role, 5, "Accept a new device into service", async () => {
-    await open(page, "/assets/new", /Register|new device/i);
+    await open(page, "/assets/new", "Register a new device");
+    await page.getByLabel("Device model").selectOption({ label: "Syringe driver SD-50" });
+    await page.getByLabel("Serial number").fill("QA-SD-0001");
+    await page.getByLabel("Owning department").selectOption({ label: "Critical Care" });
+    await page.getByLabel("Purchase or delivery date").fill("2026-10-26");
+    await page.getByRole("button", { name: "Register and open acceptance job" }).click();
+    await page.waitForURL(/\/work\/[0-9a-f-]{36}$/, { timeout: 30_000 });
+    const heading = page.getByRole("heading", { level: 1 });
+    await expect(heading).toContainText(/WO-\d{6}/, { timeout: 30_000 });
+    return `${(await heading.textContent())?.trim()}: acceptance job opened, device Do not use until it passes`;
   });
 });
 
@@ -283,10 +292,28 @@ test("admin", async ({ page }) => {
     expect(csv.status()).toBe(200);
   });
   await task(page, role, 4, "Manage users and roles", async () => {
-    await open(page, "/admin/users", /Users/);
+    await open(page, "/admin/users", "Users and roles");
+    const add = page.getByRole("form", { name: "Add a user" });
+    await add.getByLabel("Full name").fill("Quinn Tester");
+    await add.getByLabel("Work email").fill("quinn.tester@northbrook.example");
+    await add.getByLabel("Role").selectOption({ label: "Ward staff" });
+    await add.getByLabel("Department").selectOption({ label: "Emergency Department" });
+    await add.getByRole("button", { name: "Add user" }).click();
+    await expect(add.getByRole("status")).toHaveText("Added Quinn Tester.");
+    const row = page.getByRole("listitem", { name: "Quinn Tester" });
+    await row.getByLabel("Role").selectOption({ label: "Equipment library" });
+    await row.getByRole("button", { name: "Save" }).click();
+    await expect(row.getByRole("status")).toHaveText("Saved.");
+    await expect(row.getByLabel("Role")).toHaveValue("library"); // shows what was saved
+    // An admin cannot lock themselves out.
+    const me = page.getByRole("listitem", { name: admin.name });
+    await me.getByLabel("Can sign in").uncheck();
+    await me.getByRole("button", { name: "Save" }).click();
+    await expect(me.getByText("You cannot make yourself inactive.")).toBeVisible();
+    return "Added a ward user, moved them to the library role; self-lockout refused";
   });
   await task(page, role, 5, "Manage reference data: models, rooms, templates", async () => {
     await open(page, "/models", /Device models/);
-    return "Models only; no pages for rooms or test templates";
+    return "Models only; no pages for rooms or test templates yet";
   });
 });

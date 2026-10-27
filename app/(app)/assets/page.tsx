@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getDb } from "@/db/client";
 import { filtersToQuery, PAGE_SIZE, parseAssetFilters, sortChange, SORT_KEYS, type AssetFilters, type SortKey } from "@/lib/assets/filters";
+import { can } from "@/lib/auth/permissions";
 import { requirePermission } from "@/lib/auth/session";
 import { filterOptions, listAssets, listSavedViews } from "@/lib/data/assets";
 import { todayInLondon } from "@/lib/dates";
@@ -43,6 +44,9 @@ async function Register({ searchParams }: { searchParams: PageProps<"/assets">["
 
   return (
     <>
+      {can(user, "asset.register") && (
+        <Link href="/assets/new" className={`${buttonVariants({ variant: "outline" })} self-start`}>Register a new device</Link>
+      )}
       <form method="get" className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Filter assets">
         <div className="flex flex-col gap-1.5 lg:col-span-2">
           <Label htmlFor="q">Search</Label>
