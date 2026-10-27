@@ -33,6 +33,7 @@ pnpm dev          # http://localhost:3000, sign in as any seeded user
 | `pnpm job:daily` | Runs the daily job once: opens PPM jobs due within 14 days, re-sets overdue priorities. In production a scheduler calls `POST /api/cron/daily` with `Authorization: Bearer $CRON_SECRET` |
 | `pnpm db:bench` | Times location and status queries at 50,000 assets in a throwaway `medasset_bench` database |
 | `pnpm map:stress-db` / `map:measure` | Build a throwaway `medasset_stress` database with 2,000 devices on one floor; time the 3D map's first frame and orbit frame rate against a running production server (see the script headers) |
+| `pnpm art:rooms` | Write `art/blend/rooms.json` from the seed for the Blender building; then run `art/blend/build_hospital.py` in Blender to rebuild `public/models/hospital.glb` (see PLAN.md, art track A1) |
 | `pnpm typecheck` | Generate Next route types and run `tsc` |
 
 Add `--test` to a `db:*` command to target the test database, and `--today=YYYY-MM-DD`

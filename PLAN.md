@@ -777,7 +777,7 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
 ### M5: 3D map (Phase 8)
 
 1. **Placeholder map, built in the app.** The floor plan is generated in three.js from the `rooms` table (corridor position and side give a grid), with instanced markers coloured by status, a legend, and pulse plus icon for overdue and recalled. This proves the idea before any Blender work.
-2. **Real building model.** Swap in `public/models/hospital.glb` once Phase 5 exports it. Room meshes are found by `room_<GLN>`.
+2. **Real building model.** Swap in `public/models/hospital.glb` once Phase 5 exports it. Room meshes are found by `room_<GLN>`. *(The .glb is ready since A1; the swap in the app is still to do.)*
 3. **Interaction.** Hover tooltip, click to fly the camera there, side panel with the detailed device `.glb`, filters, "Show recall" mode.
 4. **Performance.** First view under 3 s and 60 fps while orbiting, measured and reported. A list-view equivalent for every map action.
 
@@ -821,6 +821,19 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
 | A2 | 6 | `scripts/gemini-images.ts`: infusion pump only, then review, then the rest |
 | A3 | 7 | Image-to-3D and Blender cleanup: infusion pump first, then one model at a time |
 | A4 | 9 | `scripts/gemini-video.ts`: one clip, then review, then the rest; plus a GIF of the real map |
+
+**A1 done (27 Oct 2026).** The building is generated, not modelled by hand, so it can be rebuilt whenever the rooms change.
+
+- **Rooms first.** `pnpm art:rooms` writes `art/blend/rooms.json` from the seed builder (no database needed), laid out by the same `lib/map/layout.ts` as the map. It holds 3 floors and 40 rooms.
+- **Then Blender.** `art/blend/build_hospital.py` builds the `hospital` collection from that file, saves `art/blend/hospital.blend` and exports `public/models/hospital.glb`. Run it in Blender (through the MCP, or Scripting > Run Script).
+- **What is in the model:**
+  - one empty per floor, `floor_<BUILDING>_L<level>` (for example `floor_MAIN_L0`);
+  - under it, `corridor_<BUILDING>_L<level>` and one `room_<GLN>` floor slab per room, carrying `gln`, `name` and `roomType` as glTF extras;
+  - under each room, `walls_<GLN>`: walls cut away at 0.9 m, as on the placeholder map, with a doorway onto the corridor (1.6 m for wards, theatres and the library, 1.4 m for the workshop, 1.2 m otherwise).
+- **Placement.** Inside each floor, positions match the map exactly. In the .blend, floors are stacked 4 m apart and the Outpatients building sits beside the Main Building, so the app must place the floor it shows at the origin.
+- **Size.** 2,916 triangles, flat colours (no textures, so no KTX2 yet), Draco geometry, 78 KB.
+- **Guard.** `lib/map/hospital-model.test.ts` reads the .glb and fails if a seeded room is missing, misplaced or misnamed, or if the model has a room the seed does not. If the seed's rooms change, rerun `pnpm art:rooms` and the Blender script.
+- **A3 is blocked.** The connected Blender has no image-to-3D generator switched on (Hunyuan3D and Hyper3D are off, Tripo needs Premium). The Blender add-on is also out of date (protocol 5, server expects 15; `uvx mcp-for-blender install-addon`).
 
 ### M6: QA as each role (Phase 10)
 

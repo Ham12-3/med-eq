@@ -23,6 +23,7 @@
     "job:daily": "tsx scripts/daily.ts",
     "map:measure": "tsx scripts/measure-map.ts",
     "map:stress-db": "tsx scripts/map-stress-db.ts",
+    "art:rooms": "tsx scripts/export-rooms.ts",
     "qa:roles": "playwright test -c playwright.qa.config.ts"
   },
   "dependencies": {
