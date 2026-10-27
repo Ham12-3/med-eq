@@ -69,10 +69,11 @@ async function main() {
 
     results.push({ ...timing, orbitFps: fps.orbit, idleFps: fps.idle });
   }
+  const devices = /(\d+) devices in \d+ rooms/.exec(await page.locator("body").innerText())?.[1] ?? "?";
   await browser.close();
 
   const median = (k: keyof Run) => [...results].map((r) => r[k]).sort((a, b) => a - b)[Math.floor(results.length / 2)];
-  console.log(`Map performance at ${url} (${runs} runs, ${headed ? "headed" : "headless, software WebGL"}):`);
+  console.log(`Map performance at ${url}, ${devices} devices on the floor (${runs} runs, ${headed ? "headed" : "headless, software WebGL"}):`);
   console.table(results.map((r) => ({
     "TTFB ms": Math.round(r.ttfb), "DOM ready ms": Math.round(r.domReady), "first 3D frame ms": Math.round(r.firstFrame),
     "idle fps": Math.round(r.idleFps), "orbit fps": Math.round(r.orbitFps),

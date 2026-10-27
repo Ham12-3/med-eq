@@ -804,7 +804,10 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
 
 - **Headless Chromium** renders WebGL in software and manages only 11 fps. Treat any headless frame rate as a floor; the real check needs a GPU-backed browser (`--headed`).
 - **Production sign-in:** `next start` needs `AUTH_TRUST_HOST=true`, or a configured `AUTH_URL`, or Auth.js rejects every session.
-- **Not yet measured:** the 2,000-device stress case from Phase 8. The seeded floors have up to 208 devices.
+- **2,000-device stress case (Phase 8), passed.**
+  - `pnpm map:stress-db` builds a throwaway `medasset_stress` database. It holds the normal seed plus copies of the ground floor's devices, which brings that floor to 2,000.
+  - Measured against it: first 3D frame about 1.2 s (median; runs from 0.95 to 1.45 s), and 60 fps while orbiting.
+  - Instanced markers keep the draw calls flat, so the device count barely moves either number.
 - **No drei `<Html>`.** Its per-element React roots raise unmount errors under React 19. Room labels are canvas sprites, and the tooltip is a normal page element.
 - **The camera fits itself** to the floor's length and depth, and refits on resize.
 - **Development-only test probe.** Dev builds expose `window.__medassetMarkerOnScreen(id)`, so Playwright can point the real mouse at a marker. Searching for markers by sweeping the canvas is too slow in headless Chromium's software WebGL.

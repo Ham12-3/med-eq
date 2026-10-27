@@ -21,7 +21,8 @@
     "db:counts": "tsx scripts/db.ts counts",
     "db:bench": "tsx scripts/bench-location.ts",
     "job:daily": "tsx scripts/daily.ts",
-    "map:measure": "tsx scripts/measure-map.ts"
+    "map:measure": "tsx scripts/measure-map.ts",
+    "map:stress-db": "tsx scripts/map-stress-db.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
