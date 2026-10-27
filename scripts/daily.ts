@@ -16,6 +16,6 @@ if (!url) throw new Error("DATABASE_URL is not set. Copy .env.example to .env.lo
 const { client, db } = createDb(url, { max: 1 });
 const today = todayArg ?? todayInLondon();
 runDailyJob(db, today)
-  .then((r) => console.log(`Daily job for ${today}: ${r.created.length} PPM jobs opened, ${r.reprioritised} reprioritised`))
+  .then((r) => console.log(`Daily job for ${today}: ${r.emScored} models scored, ${r.created.length} PPM jobs opened, ${r.reprioritised} reprioritised`))
   .catch((error) => { console.error(error); process.exitCode = 1; })
   .finally(() => client.end());

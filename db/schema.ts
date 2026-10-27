@@ -305,6 +305,7 @@ export const workOrders = pgTable("work_orders", {
   faultPhotoPath: text("fault_photo_path"),
   inspection: jsonb("inspection").$type<InspectionRecord>(),
   calibrationNotes: text("calibration_notes"),
+  actionNotes: text("action_notes"), // recall jobs: what was done for the safety notice
   outcome: workOrderOutcome("outcome"),
   dueOn: date("due_on"),
   createdAt: stamp("created_at"),
@@ -361,9 +362,12 @@ export const partsUsed = pgTable("parts_used", {
 ]);
 
 // ---------- MDSO ----------
+export const incidentReferenceSeq = pgSequence("incident_reference_seq", { startWith: 1 });
+
 export const incidents = pgTable("incidents", {
   id: id(),
-  reference: text("reference").notNull().unique(),
+  reference: text("reference").notNull().unique()
+    .default(sql`'INC-' || lpad(nextval('incident_reference_seq')::text, 5, '0')`), // INC-00012
   assetId: uuid("asset_id").references(() => assets.id),
   roomId: uuid("room_id").references(() => rooms.id),
   occurredAt: ts("occurred_at").notNull(),

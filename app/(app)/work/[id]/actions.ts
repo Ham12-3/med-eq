@@ -7,7 +7,8 @@ import { authorizedWrite, NotPermittedError, NotSignedInError } from "@/lib/auth
 import type { CurrentUser } from "@/lib/auth/users";
 import type { Tx } from "@/db/client";
 import {
-  addPart, assignJob, closeJob, JobError, markAwaitingParts, saveInspection, saveResults, startJob, type ResultEntry,
+  addPart, assignJob, closeJob, JobError, markAwaitingParts, saveActionNotes, saveInspection, saveResults, startJob,
+  type ResultEntry,
 } from "@/lib/data/workOrders";
 import { todayInLondon } from "@/lib/dates";
 import { blockerText } from "@/lib/rules/workOrder";
@@ -103,6 +104,15 @@ export async function addPartAction(_: FormState, formData: FormData) {
   return run("workorder.work", async (tx, user) => {
     await addPart(tx, jobId(formData), user, { ...parsed.data, lotNumber: parsed.data.lotNumber || null });
     return "Part recorded.";
+  });
+}
+
+export async function saveActionNotesAction(_: FormState, formData: FormData) {
+  const notes = String(formData.get("actionNotes") ?? "");
+  if (!notes.trim()) return { error: "Describe the action taken." };
+  return run("workorder.work", async (tx, user) => {
+    await saveActionNotes(tx, jobId(formData), user, notes);
+    return "Action saved.";
   });
 }
 

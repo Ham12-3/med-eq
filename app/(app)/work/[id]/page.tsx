@@ -11,7 +11,7 @@ import { requirePermission } from "@/lib/auth/session";
 import { getJob, listTechnicians, type Job } from "@/lib/data/workOrders";
 import { todayInLondon } from "@/lib/dates";
 import { blockerText, closeBlockers, OPEN_STATUSES } from "@/lib/rules/workOrder";
-import { CloseForm, InspectionForm, JobControls, PartForm, ResultsForm } from "./job-forms";
+import { ActionNotesForm, CloseForm, InspectionForm, JobControls, PartForm, ResultsForm } from "./job-forms";
 
 export default function JobPage({ params }: PageProps<"/work/[id]">) {
   return (
@@ -35,7 +35,7 @@ async function JobView({ params }: { params: PageProps<"/work/[id]">["params"] }
   const technicians = open && can(user, "workorder.assign") ? await listTechnicians(db) : null;
   const blockers = closeBlockers({
     type: job.type, status: job.status, inspection: job.inspection ?? null, items: job.items, results: job.results,
-    unusableAnalyserIds: job.analysers.filter((a) => a.doNotUse).map((a) => a.id),
+    unusableAnalyserIds: job.analysers.filter((a) => a.doNotUse).map((a) => a.id), actionNotes: job.actionNotes,
   }).map(blockerText);
 
   return (
@@ -53,7 +53,7 @@ async function JobView({ params }: { params: PageProps<"/work/[id]">["params"] }
           <div>Assigned to {job.assigneeName ?? "nobody yet"}</div>
           <div>{job.completedAt ? `Closed ${job.completedAt} by ${job.closedByName}` : job.startedAt ? `Started ${job.startedAt}` : "Not started"}</div>
         </dl>
-        {job.faultReason && <p className="rounded-lg border px-4 py-2 text-sm">Fault reported: <strong>{job.faultReason}</strong></p>}
+        {job.faultReason && job.type !== "recall" && <p className="rounded-lg border px-4 py-2 text-sm">Fault reported: <strong>{job.faultReason}</strong></p>}
         {mayWork && <JobControls job={job} technicians={technicians} />}
       </header>
 
@@ -69,7 +69,26 @@ async function JobView({ params }: { params: PageProps<"/work/[id]">["params"] }
         <ReasonList reasons={job.asset.reasons} />
       </Section>
 
-      {mayWork ? (
+      {job.type === "recall" && job.noticeId && (
+        <Section title="Safety notice">
+          <p className="text-sm">
+            <Link href={`/notices/${job.noticeId}`} className="font-mono underline-offset-4 hover:underline">{job.noticeReference}</Link> · {job.noticeTitle}
+          </p>
+          <p className="rounded-lg border px-4 py-2 text-sm">Required action: <strong>{job.noticeAction}</strong></p>
+          {!mayWork && job.actionNotes && <p className="text-sm">Action taken: {job.actionNotes}</p>}
+        </Section>
+      )}
+
+      {mayWork && job.type === "recall" ? (
+        <>
+          <Section title="Action taken" hint="What was done to this device for the notice.">
+            <ActionNotesForm job={job} />
+          </Section>
+          <Section title="Close" hint="Closing marks this device as actioned on the notice.">
+            <CloseForm job={job} blockers={blockers} />
+          </Section>
+        </>
+      ) : mayWork ? (
         <>
           <Section title="1. Initial inspection" hint="Is it clean and decontaminated? Note the control settings as found.">
             <InspectionForm job={job} />

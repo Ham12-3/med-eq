@@ -36,6 +36,7 @@ export type SeedData = {
   partsUsed: (typeof s.partsUsed.$inferInsert)[];
   locationEvents: (typeof s.locationEvents.$inferInsert)[];
   libraryMovements: (typeof s.libraryMovements.$inferInsert)[];
+  incidents: (typeof s.incidents.$inferInsert)[];
 };
 
 type Role = (typeof USER_PLAN)[number]["role"];
@@ -111,7 +112,7 @@ export function buildSeedData(today: IsoDate, seed: number = DEFAULT_SEED): Seed
   const data: SeedData = {
     departments: [], users: [], sites: [], buildings: [], floors: [], rooms: [],
     testTemplates: [], testTemplateItems: [], deviceModels: [], assets: [], ppmSchedules: [],
-    workOrders: [], testResults: [], partsUsed: [], locationEvents: [], libraryMovements: [],
+    workOrders: [], testResults: [], partsUsed: [], locationEvents: [], libraryMovements: [], incidents: [],
   };
 
   // ---------- departments and users ----------
@@ -636,6 +637,39 @@ export function buildSeedData(today: IsoDate, seed: number = DEFAULT_SEED): Seed
   // number work orders in the order they were raised
   workOrders.sort((a, b) => a.createdAt!.getTime() - b.createdAt!.getTime());
   data.workOrders = workOrders.map((wo, i) => ({ ...wo, number: `WO-${String(i + 1).padStart(6, "0")}` }));
+
+  // ---------- MDSO incidents (generated last, so adding them changed nothing above) ----------
+  const INCIDENTS: [description: string, harm: "no_harm" | "low" | "moderate"][] = [
+    ["Infusion delivered faster than set; noticed at the 30-minute check", "low"],
+    ["Alarm did not sound when the line was occluded", "no_harm"],
+    ["Device switched off during transfer; battery reading had shown full", "no_harm"],
+    ["Patient bruising from a cuff that kept inflating", "low"],
+    ["Bed side rail gave way when leant on; no fall", "no_harm"],
+    ["Hoist lowered unexpectedly during transfer; patient unhurt", "moderate"],
+    ["Display froze showing old readings", "no_harm"],
+    ["Charging lead overheated at the plug", "no_harm"],
+    ["Suction weak during a procedure; second unit used", "low"],
+    ["Wrong date and time printed on the trace", "no_harm"],
+    ["Monitor reset itself and lost alarm limits", "low"],
+    ["Cracked casing found with fluid inside", "no_harm"],
+  ];
+  const incidentCandidates = rng.shuffle(drafts.filter((d) =>
+    !d.spec.isTestEquipment && d.state === "normal" && d.purchaseDate <= addDays(windowStart, -30)));
+  INCIDENTS.forEach(([description, harmLevel], i) => {
+    const d = incidentCandidates[i];
+    const on = addDays(windowStart, rng.int(0, daysBetween(windowStart, addDays(today, -3))));
+    const occurredAt = atTime(on, rng.int(7, 20), rng.int(0, 59));
+    const recent = on > addDays(today, -30);
+    const reported = harmLevel !== "no_harm" && rng.chance(0.6);
+    data.incidents.push({
+      id: rng.uuid(), assetId: d.id, roomId: room(d.homeRoom).id, occurredAt, description, harmLevel,
+      status: recent ? "open" : "closed", reportedById: wardUser(room(d.homeRoom).dept),
+      reportedToMhra: reported,
+      yellowCardRef: reported ? `YC-${String(rng.int(100_000, 999_999))}` : null, // fictional
+      reportedToMhraAt: reported ? atTime(addDays(on, rng.int(1, 5)), 10) : null,
+    });
+  });
+  data.incidents.sort((a, b) => a.occurredAt!.getTime() - b.occurredAt!.getTime());
 
   return data;
 }

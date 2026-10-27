@@ -110,7 +110,8 @@ export async function getJob(db: Reader, id: string, today: IsoDate) {
     faultReason: string | null; inspection: InspectionRecord | null; calibrationNotes: string | null;
     outcome: CloseOutcome | null; dueOn: string | null; createdAt: string; startedAt: string | null;
     completedAt: string | null; closedByName: string | null; testTemplateId: string | null; templateName: string | null;
-    ppmScheduleId: string | null; safetyNoticeMatchId: string | null;
+    ppmScheduleId: string | null; safetyNoticeMatchId: string | null; actionNotes: string | null;
+    noticeId: string | null; noticeReference: string | null; noticeTitle: string | null; noticeAction: string | null;
   }>(sql`
     select w.id, w.number, w.type, w.status, w.priority, w.asset_id as "assetId", w.assignee_id as "assigneeId",
            ua.name as "assigneeName", ur.name as "reportedByName", w.fault_reason as "faultReason", w.inspection,
@@ -118,12 +119,15 @@ export async function getJob(db: Reader, id: string, today: IsoDate) {
            ${LONDON_TIME(sql`w.created_at`)} as "createdAt", ${LONDON_TIME(sql`w.started_at`)} as "startedAt",
            ${LONDON_TIME(sql`w.completed_at`)} as "completedAt", uc.name as "closedByName",
            w.test_template_id as "testTemplateId", t.name || ' (v' || t.version || ')' as "templateName",
-           w.ppm_schedule_id as "ppmScheduleId", w.safety_notice_match_id as "safetyNoticeMatchId"
+           w.ppm_schedule_id as "ppmScheduleId", w.safety_notice_match_id as "safetyNoticeMatchId", w.action_notes as "actionNotes",
+           n.id as "noticeId", n.reference as "noticeReference", n.title as "noticeTitle", n.required_action as "noticeAction"
     from work_orders w
     join users ur on ur.id = w.reported_by_id
     left join users ua on ua.id = w.assignee_id
     left join users uc on uc.id = w.closed_by_id
     left join test_templates t on t.id = w.test_template_id
+    left join safety_notice_matches sm on sm.id = w.safety_notice_match_id
+    left join safety_notices n on n.id = sm.notice_id
     where w.id = ${id}`);
   if (!wo) return null;
 
@@ -273,6 +277,14 @@ export async function saveResults(tx: Tx, id: string, user: CurrentUser, entries
   }
 }
 
+/** Recall jobs: what was done for the safety notice (needed before the job can close). */
+export async function saveActionNotes(tx: Tx, id: string, user: CurrentUser, notes: string) {
+  const wo = await lockJob(tx, id, user);
+  if (wo.type !== "recall") throw new JobError("Only recall jobs record a safety notice action.");
+  await ensureStarted(tx, wo, user);
+  await tx.update(workOrders).set({ actionNotes: notes.trim().slice(0, 2000) || null }).where(eq(workOrders.id, id));
+}
+
 export async function addPart(
   tx: Tx, id: string, user: CurrentUser,
   part: { partNumber: string; description: string; supplier: string; lotNumber: string | null; quantity: number },
@@ -306,7 +318,7 @@ export async function closeJob(
 
   const blockers = closeBlockers({
     type: wo.type, status: wo.status, inspection: wo.inspection ?? null, items, results,
-    unusableAnalyserIds: unusable, choice: input.choice, actionNotes: null, // recall action notes arrive with M4
+    unusableAnalyserIds: unusable, choice: input.choice, actionNotes: wo.actionNotes,
   });
   if (blockers.length > 0) return { ok: false, blockers };
 

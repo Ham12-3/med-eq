@@ -59,7 +59,7 @@ async function usableAnalyser(tx: Tx) {
 describe("daily job", () => {
   it("opens nothing new on the seeded day, which already has its jobs", async () => {
     await rolledBack(() => withUser(db, SYSTEM_USER_ID, async (tx) => {
-      expect(await runDailyJobIn(tx, TEST_TODAY)).toEqual({ created: [], reprioritised: 0 });
+      expect(await runDailyJobIn(tx, TEST_TODAY)).toEqual({ emScored: 0, created: [], reprioritised: 0 });
       throw new Rollback();
     }));
   });

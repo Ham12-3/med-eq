@@ -750,6 +750,24 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
 5. **`/dashboard`.** The manager's home page.
 6. **`/admin/audit`.** Audit search and evidence export.
 
+**Steps 1–4 done (27 Oct 2026). Steps 5 and 6 are next.** Notes from building it:
+
+- **EM scores** are written by the daily job, once per model per day, into `em_score_history`.
+  - The seed ends by running the daily job, so seeded job priorities use real scores.
+  - Changing a model's function, risk or maintenance score re-scores it at once.
+  - **Finding:** with the seed's failure rates, about one failure per device every 4 to 10 years, every model's incident history scores −2. That drops patient monitors (11) and ECG recorders (10) below 12. The method says so; schedules are never removed automatically.
+- **Safety notices** match in TypeScript with the tested rules in `lib/rules/notices.ts`.
+  - Serials compare naturally, so number runs count by value.
+  - Ranges are inclusive.
+  - Firmware must match exactly, and a device with unknown firmware never matches a firmware-specific notice.
+- **Recall jobs:**
+  - Each matched device gets one recall job: high priority if the notice requires quarantine, due on the deadline, unassigned.
+  - Closing a job needs the action recorded (`work_orders.action_notes`) and marks the match actioned.
+  - "Not affected" cancels the job.
+  - A notice closes only when nothing is still waiting.
+- **Incidents** get INC-00001-style references from a sequence. A Yellow Card report needs its reference and date.
+- **Reports** live in `lib/reports/definitions.ts`. The CSV export guards against formula injection, and the PDF is A4 landscape with page numbers.
+
 ### M5: 3D map (Phase 8)
 
 1. **Placeholder map, built in the app.** The floor plan is generated in three.js from the `rooms` table (corridor position and side give a grid), with instanced markers coloured by status, a legend, and pulse plus icon for overdue and recalled. This proves the idea before any Blender work.

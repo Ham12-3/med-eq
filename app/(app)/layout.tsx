@@ -17,6 +17,9 @@ const NAV: { href: string; label: string; action: Action }[] = [
   { href: "/ward", label: "Ward", action: "fault.report" },
   { href: "/library", label: "Library", action: "library.checkInOut" },
   { href: "/notices", label: "Safety notices", action: "notice.manage" },
+  { href: "/incidents", label: "Incidents", action: "incident.manage" },
+  { href: "/models", label: "Models", action: "model.manage" },
+  { href: "/reports", label: "Reports", action: "report.view" },
 ];
 
 export default function AppLayout({ children }: LayoutProps<"/">) {

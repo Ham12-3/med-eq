@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Job } from "@/lib/data/workOrders";
 import {
-  addPartAction, assignJobAction, awaitingPartsAction, closeJobAction, saveInspectionAction, saveResultsAction,
-  startJobAction, type FormState,
+  addPartAction, assignJobAction, awaitingPartsAction, closeJobAction, saveActionNotesAction, saveInspectionAction,
+  saveResultsAction, startJobAction, type FormState,
 } from "./actions";
 
 type ServerAction = (state: FormState, formData: FormData) => Promise<FormState>;
@@ -218,6 +218,24 @@ function limits(lower: number | null, upper: number | null, unit: string | null)
   if (upper !== null) return `Limit ≤ ${upper}${u}`;
   if (lower !== null) return `Limit ≥ ${lower}${u}`;
   return "";
+}
+
+// ---------- recall jobs ----------
+
+export function ActionNotesForm({ job }: { job: Job }) {
+  return (
+    <JobForm jobId={job.id} action={saveActionNotesAction}>
+      {(pending, state) => (<>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="actionNotes">Action taken</Label>
+          <textarea id="actionNotes" name="actionNotes" defaultValue={job.actionNotes ?? ""} className={textareaClass}
+            placeholder="For example: firmware updated to 3.0.2 and checked; label applied" />
+        </div>
+        <div><Button type="submit" variant="outline" disabled={pending}>Save action</Button></div>
+        <Feedback state={state} />
+      </>)}
+    </JobForm>
+  );
 }
 
 // ---------- 5 return to use ----------

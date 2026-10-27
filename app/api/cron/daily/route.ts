@@ -20,5 +20,5 @@ export async function POST(request: Request) {
   }
   const today = todayInLondon();
   const result = await runDailyJob(getDb(), today);
-  return Response.json({ today, created: result.created.length, reprioritised: result.reprioritised });
+  return Response.json({ today, emScored: result.emScored, created: result.created.length, reprioritised: result.reprioritised });
 }

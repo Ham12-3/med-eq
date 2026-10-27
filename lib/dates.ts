@@ -49,6 +49,28 @@ export function daysBetween(from: IsoDate, to: IsoDate): number {
   return Math.round((toUtcMs(to) - toUtcMs(from)) / DAY_MS);
 }
 
+/** London's offset from UTC in minutes at an instant (0 in winter, 60 in summer). */
+function londonOffsetMinutes(at: Date): number {
+  const name = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", timeZoneName: "shortOffset" })
+    .formatToParts(at).find((p) => p.type === "timeZoneName")?.value ?? "GMT";
+  const m = /GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(name);
+  return m ? (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] ?? 0)) : 0;
+}
+
+/**
+ * "YYYY-MM-DDTHH:MM" as a London wall-clock time (what a datetime-local input gives) to an instant.
+ * Returns null for anything else.
+ */
+export function fromLondonLocal(value: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (!m || !isIsoDate(`${m[1]}-${m[2]}-${m[3]}`)) return null;
+  const asUtc = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+  // Correct by the offset in force at that time; a second pass settles the hour around clock changes.
+  let at = asUtc - londonOffsetMinutes(new Date(asUtc)) * 60_000;
+  at = asUtc - londonOffsetMinutes(new Date(at)) * 60_000;
+  return new Date(at);
+}
+
 /** A timestamp on a calendar date at a UTC clock time. */
 export function atTime(date: IsoDate, hours: number, minutes = 0): Date {
   return new Date(toUtcMs(date) + (hours * 60 + minutes) * 60_000);

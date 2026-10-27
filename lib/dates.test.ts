@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, addMonths, addYears, daysBetween, isIsoDate, todayInLondon } from "./dates";
+import { addDays, addMonths, addYears, daysBetween, fromLondonLocal, isIsoDate, todayInLondon } from "./dates";
 
 describe("dates", () => {
   it("adds days across month and year ends", () => {
@@ -24,6 +24,14 @@ describe("dates", () => {
     expect(isIsoDate("2026-10-27")).toBe(true);
     expect(isIsoDate("2026-02-30")).toBe(false);
     expect(isIsoDate("27/10/2026")).toBe(false);
+  });
+
+  it("reads London wall-clock times in winter and summer", () => {
+    expect(fromLondonLocal("2026-12-01T09:30")?.toISOString()).toBe("2026-12-01T09:30:00.000Z");
+    expect(fromLondonLocal("2026-07-01T09:30")?.toISOString()).toBe("2026-07-01T08:30:00.000Z");
+    expect(fromLondonLocal("2026-03-29T03:00")?.toISOString()).toBe("2026-03-29T02:00:00.000Z"); // just after clocks go forward
+    expect(fromLondonLocal("2026-02-30T09:00")).toBeNull();
+    expect(fromLondonLocal("yesterday")).toBeNull();
   });
 
   it("reads today in London, not UTC", () => {

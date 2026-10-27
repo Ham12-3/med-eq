@@ -50,4 +50,5 @@ React Three Fiber + drei, Vitest, Playwright. Package manager: pnpm.
 - Commands are listed in README.md. `pnpm test` needs Docker running (`pnpm db:up`); `pnpm test:unit` does not.
 - "Do not use" rules live twice: `lib/rules/assetStatus.ts` and the SQL function `asset_status_on()`. Change both together; `tests/db/status-parity.test.ts` fails if they drift.
 - Job closing rules and their effects are pure functions in `lib/rules/workOrder.ts`; `closeJob()` in `lib/data/workOrders.ts` applies them inside one locked transaction. Change the rules there, not in the pages.
+- Client components never import values from `lib/data/*` (it pulls database code into the browser). Shared constants live in pure modules such as `lib/rules/*` or `lib/incidents.ts`; `import type` from `lib/data` is fine.
 - Pages that read the database call `getCurrentUser()`/`requirePermission()` first: it calls `connection()`, which keeps database and Auth.js work out of the prerender.

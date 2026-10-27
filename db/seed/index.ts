@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
 import type { IsoDate } from "@/lib/dates";
+import { runDailyJobIn } from "@/lib/jobs/daily";
 import { withUser, type Db, type Tx } from "../client";
 import * as s from "../schema";
 import { buildSeedData, DEFAULT_SEED } from "./build";
@@ -42,8 +43,11 @@ export async function seedDatabase(db: Db, options: { today: IsoDate; seed?: num
     await insertChunked(tx, s.partsUsed, data.partsUsed);
     await insertChunked(tx, s.locationEvents, data.locationEvents);
     await insertChunked(tx, s.libraryMovements, data.libraryMovements);
+    await insertChunked(tx, s.incidents, data.incidents); // references come from the sequence: INC-00001…
     // Sequences carry on after the seeded rows: jobs from WO-000830, events after the last seeded id.
     await tx.execute(sql`select setval('work_order_number_seq', ${data.workOrders.length})`);
     await tx.execute(sql`select setval('location_events_id_seq', ${data.locationEvents.length})`);
+    // End as the nightly job would leave things: today's EM scores, and job priorities that use them.
+    await runDailyJobIn(tx, options.today);
   });
 }
