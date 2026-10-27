@@ -686,6 +686,24 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
 5. **`/scan`.** Camera and manual entry, with a Playwright test using a mocked camera stream.
 6. **`/find`.** Nearest available, with unit tests on the ranking.
 
+**Done (27 Oct 2026).** Notes from building it:
+
+- **Status lives in two places.** `deriveAssetStatus()` in TypeScript, and the SQL function `asset_status_on(today)`. A parity test checks they agree on every seeded asset on three dates.
+- **Decommissioned has its own display status.** Section 3.2 didn't list one, but a retired device shouldn't show as a live "Do not use" risk.
+- **Device pages for ward staff.** `/assets/[id]` needs only `asset.view`; the register list needs `asset.viewRegister`. Ward staff see the summary and the In use / Free toggle, not the history.
+- **Saved views** are stored per user in the new `saved_views` table. Removing one archives it.
+- **50k benchmark** (`pnpm db:bench`: 50,000 assets, 1,000,000 location events, 150,000 jobs):
+
+  | Query | Time |
+  |---|---|
+  | One device's current location | 0.1 ms |
+  | One device's status | 0.4 ms |
+  | A 50-row register page with location and status | 1.8 ms |
+  | Current location of every asset | 0.28 s |
+  | Status of every asset (needed when filtering by status) | about 1.2 s |
+
+  **Known limit:** whole-register status filters will take about a second at that size. If that matters, keep status in a table that triggers maintain, refreshed by the nightly job for date-driven changes.
+
 ### M3: Work orders, PPM and tests (Phase 3)
 
 1. **Close rules.** `lib/rules/workOrder.ts` (`canClose`, close side effects), with Vitest covering every rule in 3.3.

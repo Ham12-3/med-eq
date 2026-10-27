@@ -28,6 +28,8 @@ pnpm dev          # http://localhost:3000, sign in as any seeded user
 | `pnpm db:counts` | Print row counts per table |
 | `pnpm test` | Unit tests, then database tests against `medasset_test` |
 | `pnpm test:unit` | Unit tests only; no database needed |
+| `pnpm test:e2e` | Playwright: its own dev server on port 3100 against a freshly seeded test database |
+| `pnpm db:bench` | Times location and status queries at 50,000 assets in a throwaway `medasset_bench` database |
 | `pnpm typecheck` | Generate Next route types and run `tsc` |
 
 Add `--test` to a `db:*` command to target the test database, and `--today=YYYY-MM-DD`

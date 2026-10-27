@@ -39,3 +39,43 @@ export function makeGiai(assetRef: string): string {
 export function isValidGiai(giai: string): boolean {
   return GIAI.test(giai);
 }
+
+export type ScanResult = { kind: "giai" | "gln"; value: string };
+
+const GS = "\u001d"; // FNC1 / group separator between variable-length element strings
+
+/**
+ * Reads what a scanner or a person typed: a GS1 element string with or without
+ * brackets, "(8004)…" for a device or "(414)…" for a place, or a bare GIAI or GLN.
+ * Returns null for anything else.
+ */
+export function parseScan(input: string): ScanResult | null {
+  let text = input.trim().replace(/^\][A-Za-z]\d/, ""); // symbology identifier, e.g. ]d2 for GS1 DataMatrix
+  if (text.startsWith(GS)) text = text.slice(1);
+  if (!text) return null;
+
+  const bracketed = [...text.matchAll(/\((\d{2,4})\)([^(]*)/g)];
+  if (bracketed.length > 0) {
+    for (const [, ai, value] of bracketed) {
+      const result = fromAi(ai, value.replaceAll(GS, "").trim());
+      if (result) return result;
+    }
+    return null;
+  }
+
+  if (text.startsWith("8004")) return fromAi("8004", text.slice(4).split(GS)[0]);
+  if (text.startsWith("414") && /^414\d{13}(\u001d|$)/.test(text)) return fromAi("414", text.slice(3, 16));
+
+  // No AI to say which it is. 13 digits can only be a GLN (a mistyped one must not pass as a GIAI),
+  // and a bare GIAI must be one of ours.
+  const bare = text.toUpperCase();
+  if (/^\d{13}$/.test(bare)) return isValidGln(bare) ? { kind: "gln", value: bare } : null;
+  if (isValidGiai(bare) && bare.startsWith(COMPANY_PREFIX)) return { kind: "giai", value: bare };
+  return null;
+}
+
+function fromAi(ai: string, value: string): ScanResult | null {
+  if (ai === "8004" && isValidGiai(value)) return { kind: "giai", value };
+  if (ai === "414" && isValidGln(value)) return { kind: "gln", value };
+  return null;
+}

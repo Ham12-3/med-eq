@@ -3,6 +3,7 @@
 // the user against the database, so it is the real line of defence.
 
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { cache } from "react";
 import { auth } from "@/auth";
 import { getDb, withUser, type Tx } from "@/db/client";
@@ -11,6 +12,9 @@ import { loadActiveUser, type CurrentUser } from "./users";
 
 /** The signed-in, still-active user, or null. Read once per render. */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  // Stop any prerender here: Auth.js and the Postgres handshake use random bytes,
+  // which Cache Components refuses during prerendering.
+  await connection();
   const session = await auth();
   const id = session?.user?.id;
   return id ? loadActiveUser(getDb(), id) : null;

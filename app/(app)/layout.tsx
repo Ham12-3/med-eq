@@ -10,6 +10,9 @@ import { signOutAction } from "../login/actions";
 
 const NAV: { href: string; label: string; action: Action }[] = [
   { href: "/work", label: "Jobs", action: "workorder.viewQueue" },
+  { href: "/assets", label: "Assets", action: "asset.viewRegister" },
+  { href: "/scan", label: "Scan", action: "location.record" },
+  { href: "/find", label: "Find", action: "device.find" },
   { href: "/dashboard", label: "Dashboard", action: "report.view" },
   { href: "/ward", label: "Ward", action: "fault.report" },
   { href: "/library", label: "Library", action: "library.checkInOut" },

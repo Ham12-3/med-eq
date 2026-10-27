@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COMPANY_PREFIX, gs1CheckDigit, isValidGiai, isValidGln, makeGiai, makeGln } from "./gs1";
+import { COMPANY_PREFIX, gs1CheckDigit, isValidGiai, isValidGln, makeGiai, makeGln, parseScan } from "./gs1";
 
 describe("GS1 identifiers", () => {
   it("computes the mod-10 check digit", () => {
@@ -23,6 +23,35 @@ describe("GS1 identifiers", () => {
 
   it("refuses location references that do not fit", () => {
     expect(() => makeGln(123_456)).toThrow();
+  });
+
+  describe("parseScan", () => {
+    const giai = "0299999IVP000001";
+    const gln = makeGln(10_001);
+
+    it("reads bracketed element strings", () => {
+      expect(parseScan(`(8004)${giai}`)).toEqual({ kind: "giai", value: giai });
+      expect(parseScan(`(414)${gln}`)).toEqual({ kind: "gln", value: gln });
+    });
+
+    it("reads raw element strings with a symbology identifier and FNC1", () => {
+      expect(parseScan(`]d2\u001d8004${giai}`)).toEqual({ kind: "giai", value: giai });
+      expect(parseScan(`8004${giai}\u001d240PART`)).toEqual({ kind: "giai", value: giai });
+      expect(parseScan(`]Q3414${gln}`)).toEqual({ kind: "gln", value: gln });
+    });
+
+    it("reads bare codes typed by hand, ignoring case and spaces", () => {
+      expect(parseScan(`  ${giai.toLowerCase()} `)).toEqual({ kind: "giai", value: giai });
+      expect(parseScan(gln)).toEqual({ kind: "gln", value: gln });
+    });
+
+    it("rejects anything else", () => {
+      expect(parseScan("")).toBeNull();
+      expect(parseScan("hello")).toBeNull();
+      expect(parseScan(`(414)${gln.slice(0, 12)}0`.replace(/0$/, String((Number(gln[12]) + 1) % 10)))).toBeNull();
+      expect(parseScan("(01)09506000134352")).toBeNull();
+      expect(parseScan("1234567890123")).toBeNull(); // 13 digits with a wrong check digit
+    });
   });
 
   it("builds GIAIs of at most 30 characters", () => {

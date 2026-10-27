@@ -311,6 +311,7 @@ export const workOrders = pgTable("work_orders", {
   index("wo_assignee_status_idx").on(t.assigneeId, t.status),
   index("wo_queue_idx").on(t.status, t.priority, t.dueOn),
   index("wo_asset_time_idx").on(t.assetId, t.createdAt.desc()),
+  index("wo_asset_completed_idx").on(t.assetId, t.completedAt.desc(), t.id.desc()).where(sql`${t.status} = 'completed'`), // latest test outcome
   uniqueIndex("wo_one_open_ppm_uq").on(t.ppmScheduleId)
     .where(sql`${t.status} in ('open', 'in_progress', 'awaiting_parts')`),
   check("wo_ppm_ck", sql`${t.type} <> 'ppm' or ${t.ppmScheduleId} is not null`),
@@ -375,6 +376,18 @@ export const incidents = pgTable("incidents", {
   index("inc_status_time_idx").on(t.status, t.occurredAt.desc()),
   check("inc_mhra_ck", sql`not ${t.reportedToMhra} or (${t.yellowCardRef} is not null and ${t.reportedToMhraAt} is not null)`),
 ]);
+
+// ---------- per-user settings ----------
+/** A named set of list filters, stored as the page's query string. Removing one archives it. */
+export const savedViews = pgTable("saved_views", {
+  id: id(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  page: text("page").notNull(), // e.g. "assets"
+  name: text("name").notNull(),
+  query: text("query").notNull(),
+  archived: boolean("archived").notNull().default(false),
+  createdAt: stamp("created_at"),
+}, (t) => [index("sv_user_page_idx").on(t.userId, t.page)]);
 
 // ---------- audit ----------
 // Append-only. Written only by the audit_row() trigger; UPDATE, DELETE and TRUNCATE raise.

@@ -59,7 +59,7 @@ describe("routes", () => {
 
   it("matches routes by whole path segment", () => {
     expect(requiredAction("/assets")).toBe("asset.viewRegister");
-    expect(requiredAction("/assets/123")).toBe("asset.viewRegister");
+    expect(requiredAction("/assets/123")).toBe("asset.view");
     expect(requiredAction("/assets/new")).toBe("asset.register");
     expect(requiredAction("/workshop")).toBeNull();
     expect(requiredAction("/login")).toBeNull();
@@ -69,6 +69,12 @@ describe("routes", () => {
 describe("landingPath", () => {
   it("keeps a requested page the role may open, with its query", () => {
     expect(landingPath("technician", "/assets?status=overdue")).toBe("/assets?status=overdue");
+  });
+
+  it("lets ward staff open a device page but not the register", () => {
+    expect(landingPath("ward", "/assets/0b6c1f1e-0000-4000-8000-000000000001")).toBe("/assets/0b6c1f1e-0000-4000-8000-000000000001");
+    expect(landingPath("ward", "/assets")).toBe("/ward");
+    expect(landingPath("ward", "/assets?overdue=1")).toBe("/ward");
   });
 
   it("sends a role home from a page it may not open", () => {

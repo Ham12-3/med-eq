@@ -48,3 +48,5 @@ React Three Fiber + drei, Vitest, Playwright. Package manager: pnpm.
 - Server actions that write use `authorizedWrite(action, (tx, user) => ...)` from `lib/auth/session.ts`: it re-checks the session and `can(user, action)` itself, then calls `withUser`. Pages call `requirePermission(action)` inside a `<Suspense>` boundary (Cache Components makes a session read outside one a build error).
 - Roles, actions, role home pages and route permissions live in `lib/auth/permissions.ts`. Add new routes to `ROUTE_ACTIONS` there. The proxy only checks the cookie; never rely on it alone.
 - Commands are listed in README.md. `pnpm test` needs Docker running (`pnpm db:up`); `pnpm test:unit` does not.
+- "Do not use" rules live twice: `lib/rules/assetStatus.ts` and the SQL function `asset_status_on()`. Change both together; `tests/db/status-parity.test.ts` fails if they drift.
+- Pages that read the database call `getCurrentUser()`/`requirePermission()` first: it calls `connection()`, which keeps database and Auth.js work out of the prerender.

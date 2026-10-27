@@ -76,16 +76,20 @@ export const ROLE_LABEL: Record<Role, string> = {
   admin: "MDSO / admin",
 };
 
-/** Routes that need a permission, longest prefix first. Pages re-check; this drives proxy redirects. */
-const ROUTE_ACTIONS: [prefix: string, action: Action][] = [
+/**
+ * Routes that need a permission, most specific first. A prefix also covers the pages below it,
+ * unless marked exact. Pages re-check; this drives proxy redirects.
+ */
+const ROUTE_ACTIONS: [prefix: string, action: Action, exact?: "exact"][] = [
   ["/assets/new", "asset.register"],
-  ["/assets", "asset.viewRegister"],
+  ["/assets", "asset.viewRegister", "exact"], // the register itself
+  ["/assets", "asset.view"], // one device's page, which ward staff may see
+  ["/find", "device.find"],
   ["/work", "workorder.viewQueue"],
   ["/dashboard", "report.view"],
   ["/reports", "report.view"],
   ["/ward", "fault.report"],
   ["/report-fault", "fault.report"],
-  ["/find", "device.find"],
   ["/scan", "location.record"],
   ["/library", "library.checkInOut"],
   ["/models", "model.manage"],
@@ -96,8 +100,8 @@ const ROUTE_ACTIONS: [prefix: string, action: Action][] = [
 ];
 
 export function requiredAction(pathname: string): Action | null {
-  for (const [prefix, action] of ROUTE_ACTIONS) {
-    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return action;
+  for (const [prefix, action, exact] of ROUTE_ACTIONS) {
+    if (pathname === prefix || (!exact && pathname.startsWith(`${prefix}/`))) return action;
   }
   return null;
 }
