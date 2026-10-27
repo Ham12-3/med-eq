@@ -29,3 +29,12 @@ dist/
 Thumbs.db
 .vscode/
 .idea/
+
+# misc from next.js scaffold
+.pnp
+.pnp.*
+.vercel
+*.pem
+/build
+npm-debug.log*
+.pnpm-debug.log*

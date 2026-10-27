@@ -25,7 +25,7 @@ The manager can also do everything the technician can. Admin can see everything.
 
 ## 2. Database schema (Drizzle)
 
-This is the planned `db/schema.ts`. Conventions:
+This was the planned `db/schema.ts`. Since M1, the real [db/schema.ts](db/schema.ts) is the source of truth; the only difference is that it names every timestamp column explicitly. Conventions:
 
 - Primary keys are UUIDs. The high-volume tables (`location_events`, `audit_log`) use `bigserial`.
 - Timestamps are `timestamptz`. Due dates are `date`, read in Europe/London.

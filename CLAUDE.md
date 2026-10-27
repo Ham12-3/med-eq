@@ -42,4 +42,7 @@ React Three Fiber + drei, Vitest, Playwright. Package manager: pnpm.
 ## How to work
 - Plan first, then build in small steps. Run tests before saying a step is done.
 - Ask before adding a new dependency.
-- PLAN.md holds the schema, status rules, route map and milestones. Follow it.
+- PLAN.md holds the status rules, route map and milestones. Follow it. `db/schema.ts` is now the source of truth for the schema.
+- This is Next.js 16: read AGENTS.md and the docs in `node_modules/next/dist/docs/` before writing Next code.
+- Every database write goes through `withUser(db, userId, tx => ...)` in `db/client.ts`. The audit trigger rejects writes without a user.
+- Commands are listed in README.md. `pnpm test` needs Docker running (`pnpm db:up`); `pnpm test:unit` does not.

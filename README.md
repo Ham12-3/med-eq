@@ -1,1 +1,43 @@
-# med-eq
+# MedAsset
+
+A medical equipment asset and maintenance tracker for hospital clinical engineering teams,
+following MHRA *Managing Medical Devices* (2021). See [PLAN.md](PLAN.md) for the design and
+[CLAUDE.md](CLAUDE.md) for the project rules. All data is synthetic.
+
+## Getting started
+
+Needs Node 22+, pnpm and Docker Desktop.
+
+```bash
+pnpm install
+cp .env.example .env.local
+pnpm db:up        # Postgres 16 in Docker, with the app role and a test database
+pnpm db:reset     # drop, migrate and seed the fictional hospital, then print row counts
+pnpm dev          # http://localhost:3000
+```
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `pnpm db:up` / `db:down` | Start or stop the Postgres container |
+| `pnpm db:generate` | Generate a migration from `db/schema.ts` |
+| `pnpm db:migrate` | Apply pending migrations (as the owner role) |
+| `pnpm db:seed` | Seed an empty database (as the app role) |
+| `pnpm db:reset` | Drop everything, migrate and seed. Development only |
+| `pnpm db:counts` | Print row counts per table |
+| `pnpm test` | Unit tests, then database tests against `medasset_test` |
+| `pnpm test:unit` | Unit tests only; no database needed |
+| `pnpm typecheck` | Generate Next route types and run `tsc` |
+
+Add `--test` to a `db:*` command to target the test database, and `--today=YYYY-MM-DD`
+to seed as if it were another day, for example `pnpm db:reset --today=2026-10-27`.
+
+## Database rules
+
+- The app connects as `medasset_app`, which has no DELETE and can only append to `audit_log`.
+- Every insert and update writes an `audit_log` row with the user from `app.user_id`.
+  Use `withUser(db, userId, tx => ...)` from `db/client.ts` for every write; a write
+  without a user is rejected.
+- DELETE and TRUNCATE raise on every table, even for the owner role.
+- A new table in a later migration must call `SELECT medasset_protect('table_name');`.
