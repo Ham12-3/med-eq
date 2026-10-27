@@ -750,7 +750,13 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
 5. **`/dashboard`.** The manager's home page.
 6. **`/admin/audit`.** Audit search and evidence export.
 
-**Steps 1–4 done (27 Oct 2026). Steps 5 and 6 are next.** Notes from building it:
+**Done (27 Oct 2026).** Notes from building it:
+
+- **The dashboard** shows the six numbers, each linking to its list. Each uses the same definition as the report or register filter it opens; a test checks they agree. It adds a technician workload table.
+- **`/admin/audit`** (admin only) searches by device, safety notice, dates (UK days), user, record type, and created or changed.
+  - A device search follows everything that names the device or its jobs. A notice search follows its criteria, matches and recall jobs.
+  - The CSV has full before and after values, and an `X-Content-SHA256` header so a recipient can confirm the file hasn't changed.
+  - The PDF is a readable summary of up to 2,000 entries.
 
 - **EM scores** are written by the daily job, once per model per day, into `em_score_history`.
   - The seed ends by running the daily job, so seeded job priorities use real scores.
