@@ -45,4 +45,6 @@ React Three Fiber + drei, Vitest, Playwright. Package manager: pnpm.
 - PLAN.md holds the status rules, route map and milestones. Follow it. `db/schema.ts` is now the source of truth for the schema.
 - This is Next.js 16: read AGENTS.md and the docs in `node_modules/next/dist/docs/` before writing Next code.
 - Every database write goes through `withUser(db, userId, tx => ...)` in `db/client.ts`. The audit trigger rejects writes without a user.
+- Server actions that write use `authorizedWrite(action, (tx, user) => ...)` from `lib/auth/session.ts`: it re-checks the session and `can(user, action)` itself, then calls `withUser`. Pages call `requirePermission(action)` inside a `<Suspense>` boundary (Cache Components makes a session read outside one a build error).
+- Roles, actions, role home pages and route permissions live in `lib/auth/permissions.ts`. Add new routes to `ROUTE_ACTIONS` there. The proxy only checks the cookie; never rely on it alone.
 - Commands are listed in README.md. `pnpm test` needs Docker running (`pnpm db:up`); `pnpm test:unit` does not.

@@ -10,10 +10,10 @@ Needs Node 22+, pnpm and Docker Desktop.
 
 ```bash
 pnpm install
-cp .env.example .env.local
+cp .env.example .env.local   # then set AUTH_SECRET (the file says how)
 pnpm db:up        # Postgres 16 in Docker, with the app role and a test database
 pnpm db:reset     # drop, migrate and seed the fictional hospital, then print row counts
-pnpm dev          # http://localhost:3000
+pnpm dev          # http://localhost:3000, sign in as any seeded user
 ```
 
 ## Commands
@@ -32,6 +32,16 @@ pnpm dev          # http://localhost:3000
 
 Add `--test` to a `db:*` command to target the test database, and `--today=YYYY-MM-DD`
 to seed as if it were another day, for example `pnpm db:reset --today=2026-10-27`.
+
+## Signing in
+
+Auth.js v5 with JWT sessions (12 hours). In development, `AUTH_DEV_LOGIN=true` turns on a
+"sign in as" picker at `/login` listing the seeded users, with no passwords. It is always off
+in production builds; a real identity provider must be added before any pilot.
+
+Each role lands on its own home screen: technician `/work`, manager `/dashboard`,
+ward `/ward`, library `/library`, MDSO/admin `/notices`. Permissions are in
+`lib/auth/permissions.ts`; every page and server action re-checks the user against the database.
 
 ## Database rules
 
