@@ -95,11 +95,11 @@ export async function filterOptions(db: Reader) {
   return { models: [...models], departments: [...departments], rooms };
 }
 
-export type RoomOption = { id: string; name: string; floorId: string; floorLabel: string };
+export type RoomOption = { id: string; name: string; floorId: string; floorLabel: string; roomType: string };
 
 export async function roomOptions(db: Reader): Promise<RoomOption[]> {
   const rows = await db.execute<RoomOption>(sql`
-    select r.id, r.name, f.id as "floorId", b.name || ', ' || f.name as "floorLabel"
+    select r.id, r.name, f.id as "floorId", b.name || ', ' || f.name as "floorLabel", r.room_type as "roomType"
     from rooms r join floors f on f.id = r.floor_id join buildings b on b.id = f.building_id
     where r.active
     order by b.code, f.level, r.corridor_position, r.corridor_side`);

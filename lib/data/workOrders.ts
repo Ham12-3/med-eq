@@ -360,6 +360,27 @@ export async function closeJob(
   return { ok: true, outcome: effects.outcome, followUp };
 }
 
+// ---------- labels ----------
+
+/** What the return-to-use label needs about a job. */
+export async function getLabelJob(db: Reader, id: string) {
+  if (!UUID.test(id)) return null;
+  const [row] = await db.execute<{
+    number: string; type: WorkOrderType; status: WorkOrderStatus; outcome: CloseOutcome | null;
+    completedOn: string | null; technicianInitials: string | null; giai: string; modelName: string; nextDueOn: string | null;
+  }>(sql`
+    select w.number, w.type, w.status, w.outcome,
+           to_char(w.completed_at at time zone 'Europe/London', 'YYYY-MM-DD') as "completedOn",
+           u.initials as "technicianInitials", a.giai, m.name as "modelName",
+           (select p.next_due_on::text from ppm_schedules p where p.asset_id = a.id and p.active) as "nextDueOn"
+    from work_orders w
+    join assets a on a.id = w.asset_id
+    join device_models m on m.id = a.device_model_id
+    left join users u on u.id = w.closed_by_id
+    where w.id = ${id}`);
+  return row ?? null;
+}
+
 // ---------- ward fault reports ----------
 
 export const FAULT_REASONS = [

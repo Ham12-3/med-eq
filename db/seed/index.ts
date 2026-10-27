@@ -41,7 +41,9 @@ export async function seedDatabase(db: Db, options: { today: IsoDate; seed?: num
     await insertChunked(tx, s.testResults, data.testResults);
     await insertChunked(tx, s.partsUsed, data.partsUsed);
     await insertChunked(tx, s.locationEvents, data.locationEvents);
-    // New jobs number on from the last seeded one (WO-000829 becomes 829).
+    await insertChunked(tx, s.libraryMovements, data.libraryMovements);
+    // Sequences carry on after the seeded rows: jobs from WO-000830, events after the last seeded id.
     await tx.execute(sql`select setval('work_order_number_seq', ${data.workOrders.length})`);
+    await tx.execute(sql`select setval('location_events_id_seq', ${data.locationEvents.length})`);
   });
 }

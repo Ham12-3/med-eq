@@ -43,6 +43,13 @@
       "when": 1793108331676,
       "tag": "0005_work_order_number_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793110978662,
+      "tag": "0006_location_event_sequence_grant",
+      "breakpoints": true
     }
   ]
 }

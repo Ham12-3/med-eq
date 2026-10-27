@@ -86,6 +86,13 @@ test("a nurse reports a fault in two taps, and a technician repairs it", async (
   await expect(page.getByRole("heading", { level: 1 })).toContainText(number);
   await expect(page.getByTestId("job-status")).toHaveText("Returned to use");
   expect(await deviceStatus(device.id)).toMatchObject({ lifecycle_status: "in_service", reasons: [] });
+
+  // The SERVICED label for the closed job.
+  const label = page.getByRole("link", { name: "Print SERVICED label" });
+  const response = await page.request.get((await label.getAttribute("href"))!);
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toBe("application/pdf");
+  expect((await response.body()).subarray(0, 5).toString()).toBe("%PDF-");
 });
 
 test("a PPM closed with a failed test leaves the device Do not use and opens a repair", async ({ page }) => {

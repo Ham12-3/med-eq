@@ -8,7 +8,7 @@ import { SYSTEM_USER_ID } from "@/db/seed/reference";
 import { loadActiveUser, type CurrentUser } from "@/lib/auth/users";
 import { getAssetSummary } from "@/lib/data/assets";
 import {
-  closeJob, getJob, JobError, reportFault, saveInspection, saveResults, startJob, type ResultEntry,
+  closeJob, getJob, JobError, listAnalysers, reportFault, saveInspection, saveResults, startJob, type ResultEntry,
 } from "@/lib/data/workOrders";
 import { addDays, addMonths } from "@/lib/dates";
 import { runDailyJobIn } from "@/lib/jobs/daily";
@@ -42,18 +42,18 @@ function passingEntries(items: Awaited<ReturnType<typeof getJob>> extends infer 
 
 const INSPECTED = { clean: true, decontaminated: true, controlSettings: "Ward defaults restored" };
 
-async function openPpmOnHealthyAsset(tx: Tx) {
+/** An open PPM job on a healthy device, assigned to `tech` so they may work it. */
+async function openPpmOnHealthyAsset(tx: Tx, tech: CurrentUser) {
   const [row] = await tx.execute<{ id: string }>(sql`
     select w.id from work_orders w
     join asset_status_on(${TEST_TODAY}::date) s on s.asset_id = w.asset_id
-    where w.type = 'ppm' and w.status = 'open' and not s.do_not_use
+    where w.type = 'ppm' and w.status = 'open' and not s.do_not_use and w.assignee_id = ${tech.id}
     order by w.number limit 1`);
   return (await getJob(tx, row.id, TEST_TODAY))!;
 }
 
 async function usableAnalyser(tx: Tx) {
-  const job = await openPpmOnHealthyAsset(tx);
-  return job.analysers.find((a) => !a.doNotUse)!.id;
+  return (await listAnalysers(tx, TEST_TODAY)).find((a) => !a.doNotUse)!.id;
 }
 
 describe("daily job", () => {
@@ -109,7 +109,7 @@ describe("closing a PPM job", () => {
   it("refuses to close until the inspection and every required test are done", async () => {
     const tech = await userWithRole("technician");
     await asUser(tech, async (tx) => {
-      const job = await openPpmOnHealthyAsset(tx);
+      const job = await openPpmOnHealthyAsset(tx, tech);
       const blocked = await closeJob(tx, job.id, tech, { today: TEST_TODAY });
       expect(blocked.ok).toBe(false);
       if (!blocked.ok) {
@@ -122,7 +122,7 @@ describe("closing a PPM job", () => {
   it("returns the device to use and rolls the schedule forward from today", async () => {
     const tech = await userWithRole("technician");
     await asUser(tech, async (tx) => {
-      const job = await openPpmOnHealthyAsset(tx);
+      const job = await openPpmOnHealthyAsset(tx, tech);
       await saveInspection(tx, job.id, tech, { inspection: INSPECTED, calibrationNotes: null });
       await saveResults(tx, job.id, tech, passingEntries(job.items), await usableAnalyser(tx));
       const closed = await closeJob(tx, job.id, tech, { today: TEST_TODAY });
@@ -143,7 +143,7 @@ describe("closing a PPM job", () => {
   it("quarantines the device on a failed test, keeps the schedule, and opens a repair (Q3)", async () => {
     const tech = await userWithRole("technician");
     await asUser(tech, async (tx) => {
-      const job = await openPpmOnHealthyAsset(tx);
+      const job = await openPpmOnHealthyAsset(tx, tech);
       const failing = job.items.find((i) => i.kind === "measurement" && i.group === "electrical_safety")!;
       const before = (await getAssetSummary(tx, job.assetId, TEST_TODAY))!;
       await saveInspection(tx, job.id, tech, { inspection: INSPECTED, calibrationNotes: null });
@@ -169,7 +169,7 @@ describe("closing a PPM job", () => {
   it("works out measurement outcomes from the limits, not the form", async () => {
     const tech = await userWithRole("technician");
     await asUser(tech, async (tx) => {
-      const job = await openPpmOnHealthyAsset(tx);
+      const job = await openPpmOnHealthyAsset(tx, tech);
       const pe = job.items.find((i) => i.kind === "measurement" && i.upper !== null)!;
       await saveResults(tx, job.id, tech, [{ itemId: pe.id, kind: "measurement", value: String(pe.upper! + 1) }], await usableAnalyser(tx));
       const [r] = await tx.execute<{ outcome: string }>(sql`
@@ -186,7 +186,7 @@ describe("closing a PPM job", () => {
   it("rejects not-applicable on a required check, a missing analyser and a non-number", async () => {
     const tech = await userWithRole("technician");
     await asUser(tech, async (tx) => {
-      const job = await openPpmOnHealthyAsset(tx);
+      const job = await openPpmOnHealthyAsset(tx, tech);
       const check = job.items.find((i) => i.kind === "check" && i.required)!;
       const measurement = job.items.find((i) => i.kind === "measurement")!;
       await expect(saveResults(tx, job.id, tech, [{ itemId: check.id, kind: "check", outcome: "not_applicable" }], null)).rejects.toThrow(JobError);
@@ -200,7 +200,7 @@ describe("closing a PPM job", () => {
     const other = await userWithRole("technician", 1);
     const manager = await userWithRole("manager");
     await asUser(tech, async (tx) => {
-      const job = await openPpmOnHealthyAsset(tx);
+      const job = await openPpmOnHealthyAsset(tx, tech);
       await tx.execute(sql`update work_orders set assignee_id = ${tech.id} where id = ${job.id}`);
       await expect(startJob(tx, job.id, other)).rejects.toThrow(/assigned to someone else/);
       await startJob(tx, job.id, manager);

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { OUTCOME_TEXT, PriorityBadge, STATUS_TEXT, TYPE_TEXT } from "@/components/job-bits";
 import { ReasonList, StatusBadge } from "@/components/status-badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getDb } from "@/db/client";
 import { can } from "@/lib/auth/permissions";
@@ -99,6 +100,13 @@ function ClosedRecord({ job, open }: { job: Job; open: boolean }) {
   return (
     <>
       {open && <p className="text-muted-foreground text-sm">This job is assigned to {job.assigneeName}. You can see it but not change it.</p>}
+      {!open && job.outcome && job.type !== "recall" && (
+        <p>
+          <a href={`/work/${job.id}/label.pdf`} target="_blank" rel="noopener" className={buttonVariants()}>
+            {job.outcome === "returned_to_use" || job.outcome === "no_fault_found" ? "Print SERVICED label" : "Print DO NOT USE label"}
+          </a>
+        </p>
+      )}
       <Section title="Inspection and calibration">
         <p className="text-sm">
           {job.inspection

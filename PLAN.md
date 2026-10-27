@@ -714,7 +714,17 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
 6. **SERVICED label PDF.**
 7. **`/library`.** Check out and in (writes a location event and a library movement), ready stock **[Q4]**.
 
-**Steps 1–5 done (27 Oct 2026). Steps 6 and 7 are next.** Notes from building it:
+**Done (27 Oct 2026).** Notes from building it:
+
+- **Labels.** `/work/<id>/label.pdf` prints a 62 × 40 mm label:
+  - SERVICED, with the next due date, when the job returned the device to use;
+  - DO NOT USE after a failed test or a write-off.
+  - Each label carries a GS1 DataMatrix of the GIAI, checked to decode.
+- **The equipment library** is the stock owned by the Equipment Library department.
+  - "Ready" means the device is in the library and its last check-in recorded it cleaned and charged.
+  - Check-out is refused while the device must not be used, isn't in the library, or isn't ready. Check-out marks it in use; check-in clears that (Q4).
+  - Loans out more than 14 days are listed for chasing.
+  - The seed now writes library movements, so location events in the seed have explicit ids.
 
 - **No fault found still needs every test.** CLAUDE.md's rule beats section 3.3's exception.
 - **A repair cannot close while a required test fails.** Fix and retest, or close it as beyond economic repair, which decommissions the device.

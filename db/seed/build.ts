@@ -35,6 +35,7 @@ export type SeedData = {
   testResults: (typeof s.testResults.$inferInsert)[];
   partsUsed: (typeof s.partsUsed.$inferInsert)[];
   locationEvents: (typeof s.locationEvents.$inferInsert)[];
+  libraryMovements: (typeof s.libraryMovements.$inferInsert)[];
 };
 
 type Role = (typeof USER_PLAN)[number]["role"];
@@ -110,7 +111,7 @@ export function buildSeedData(today: IsoDate, seed: number = DEFAULT_SEED): Seed
   const data: SeedData = {
     departments: [], users: [], sites: [], buildings: [], floors: [], rooms: [],
     testTemplates: [], testTemplateItems: [], deviceModels: [], assets: [], ppmSchedules: [],
-    workOrders: [], testResults: [], partsUsed: [], locationEvents: [],
+    workOrders: [], testResults: [], partsUsed: [], locationEvents: [], libraryMovements: [],
   };
 
   // ---------- departments and users ----------
@@ -290,7 +291,7 @@ export function buildSeedData(today: IsoDate, seed: number = DEFAULT_SEED): Seed
       const I = spec.intervalMonths;
       const home = room(d.homeRoom);
       const owner = spec.owner === "room" ? home.dept : spec.owner;
-      const libraryOwned = spec.owner === "LIB";
+      const libraryOwned = owner === "LIB"; // pumps and drivers, plus anything else placed in the library
       const events: Event[] = [];
       const scanner = (roomKey: string) => {
         const r = room(roomKey);
@@ -412,7 +413,7 @@ export function buildSeedData(today: IsoDate, seed: number = DEFAULT_SEED): Seed
           assetId: d.id, testTemplateId: model.templateId, assigneeId: assignee, reportedById: assignee,
           dueOn: addDays(d.purchaseDate, 14), createdAt, startedAt: started ? plusMinutes(createdAt, 90) : null,
         });
-        pushEvents(d.id, events);
+        pushEvents(d.id, events, false); // still in acceptance, not yet library stock
         return;
       }
 
@@ -455,7 +456,7 @@ export function buildSeedData(today: IsoDate, seed: number = DEFAULT_SEED): Seed
         dueNext = due;
       }
       if (lastDoneOn) nextDue = addMonths(lastDoneOn, I);
-      if (d.historicalFailure && chain.length >= 2) chain[rng.int(0, chain.length - 2)].failDays = rng.int(1, 10);
+      if (d.historicalFailure && chain.length >= 1) chain[rng.int(0, chain.length - 1)].failDays = rng.int(1, 10);
 
       const scheduleId = rng.uuid();
       data.ppmSchedules.push({
@@ -597,17 +598,39 @@ export function buildSeedData(today: IsoDate, seed: number = DEFAULT_SEED): Seed
         });
       }
 
-      pushEvents(d.id, events);
+      pushEvents(d.id, events, libraryOwned);
     });
   }
 
-  function pushEvents(assetId: string, events: Event[]) {
-    for (const e of [...events].sort((a, b) => a.at.getTime() - b.at.getTime())) {
+  /**
+   * Location events get explicit ids so library movements can point at them; the seed then
+   * moves the id sequence on. For library stock, arriving in the library is a check-in and
+   * leaving it for a ward is a check-out.
+   */
+  function pushEvents(assetId: string, events: Event[], libraryOwned: boolean) {
+    const sorted = [...events].sort((a, b) => a.at.getTime() - b.at.getTime());
+    sorted.forEach((e, i) => {
+      const id = data.locationEvents.length + 1;
+      const target = room(e.roomKey);
       data.locationEvents.push({
-        assetId, roomId: room(e.roomKey).id, source: rng.chance(0.05) ? "manual" : "scan",
+        id, assetId, roomId: target.id, source: rng.chance(0.05) ? "manual" : "scan",
         scannedById: e.byUserId, occurredAt: e.at,
       });
-    }
+      if (!libraryOwned) return;
+      const fromLibrary = i > 0 && sorted[i - 1].roomKey === "library";
+      if (target.type === "equipment_library") {
+        const last = i === sorted.length - 1;
+        data.libraryMovements.push({
+          id: rng.uuid(), assetId, direction: "check_in", roomId: target.id, locationEventId: id,
+          byUserId: libraryUser(), cleaned: true, charged: last ? rng.chance(0.85) : true, occurredAt: e.at,
+        });
+      } else if (fromLibrary && target.type !== "workshop") {
+        data.libraryMovements.push({
+          id: rng.uuid(), assetId, direction: "check_out", roomId: target.id, departmentId: deptId[target.dept],
+          locationEventId: id, byUserId: libraryUser(), occurredAt: e.at,
+        });
+      }
+    });
   }
 
   // number work orders in the order they were raised
