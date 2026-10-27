@@ -55,6 +55,7 @@ export default function FloorMap(props: FloorMapProps) {
       <OrbitControls makeDefault target={[0, 0, 0]} maxPolarAngle={Math.PI * 0.45} minDistance={6} maxDistance={span * 2} />
       <FitCamera plan={props.plan} fitKey={props.fitKey} />
       <FlyTo marker={props.markers.find((m) => m.id === props.selectedId) ?? null} />
+      <FirstFrameMark />
       {process.env.NODE_ENV !== "production" && <ScreenProbe markers={props.markers} />}
     </Canvas>
   );
@@ -79,6 +80,17 @@ function ScreenProbe({ markers }: { markers: MapMarker[] }) {
     };
     return () => { delete window.__medassetMarkerOnScreen; };
   }, [camera, gl, markers]);
+  return null;
+}
+
+/** Records when the map first drew, for `scripts/measure-map.ts` and the browser's performance panel. */
+function FirstFrameMark() {
+  const done = useRef(false);
+  useFrame(() => {
+    if (done.current) return;
+    done.current = true;
+    performance.mark("medasset:map-first-frame");
+  });
   return null;
 }
 

@@ -792,7 +792,19 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
   - Filters by model and owning department, kept in the URL and carried across floors.
   - "Show recall" for any safety notice: only matched devices show, each with its standing on the notice, and the floor buttons show where they are.
   - Devices left out by a filter stay as grey dots, in the same place.
-- **Still to do:** the detailed device `.glb` viewer (needs the art track's models) and performance measurement (step 4).
+- **Still to do:** the detailed device `.glb` viewer (needs the art track's models).
+
+**Step 4 measured (27 Oct 2026)** with `pnpm map:measure`. The test is a production build on this laptop, the Main Building ground floor (208 devices), 3 runs, a 1366 × 768 window, and a 3-second drag to orbit.
+
+| Measure | Target | Result | Verdict |
+|---|---|---|---|
+| First 3D frame (from navigation) | under 3 s | about 1.2 s (median of 1.15–1.46 s) | Pass |
+| Frame rate while orbiting | 60 fps | 60 fps (57–60) | Pass |
+| Frame rate at rest | | 60–61 fps | |
+
+- **Headless Chromium** renders WebGL in software and manages only 11 fps. Treat any headless frame rate as a floor; the real check needs a GPU-backed browser (`--headed`).
+- **Production sign-in:** `next start` needs `AUTH_TRUST_HOST=true`, or a configured `AUTH_URL`, or Auth.js rejects every session.
+- **Not yet measured:** the 2,000-device stress case from Phase 8. The seeded floors have up to 208 devices.
 - **No drei `<Html>`.** Its per-element React roots raise unmount errors under React 19. Room labels are canvas sprites, and the tooltip is a normal page element.
 - **The camera fits itself** to the floor's length and depth, and refits on resize.
 - **Development-only test probe.** Dev builds expose `window.__medassetMarkerOnScreen(id)`, so Playwright can point the real mouse at a marker. Searching for markers by sweeping the canvas is too slow in headless Chromium's software WebGL.
