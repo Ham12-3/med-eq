@@ -1,0 +1,32 @@
+[
+  {
+    "task": "1. Work the job queue",
+    "screen": "technician-1.png",
+    "ok": true,
+    "note": "14 jobs in the queue"
+  },
+  {
+    "task": "2. Scan a device to open its record or job",
+    "screen": "technician-2.png",
+    "ok": true,
+    "note": ""
+  },
+  {
+    "task": "3. Complete the PPM checklist",
+    "screen": "technician-3.png",
+    "ok": true,
+    "note": "WO-000790: 10 tests recorded"
+  },
+  {
+    "task": "4. Close the job and print the SERVICED label",
+    "screen": "technician-4.png",
+    "ok": true,
+    "note": "Returned to use; label PDF downloads"
+  },
+  {
+    "task": "5. Accept a new device into service",
+    "screen": "technician-5.png",
+    "ok": false,
+    "note": "expect(locator).toBeVisible() failed"
+  }
+]

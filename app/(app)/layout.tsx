@@ -46,14 +46,14 @@ async function UserNav() {
   const links = NAV.filter((item) => can(user, item.action));
   return (
     <>
-      <nav aria-label="Main" className="flex flex-1 flex-wrap gap-4 text-sm">
+      <nav aria-label="Main" className="order-last flex w-full flex-wrap gap-x-4 gap-y-1 text-sm">
         {links.map((item) => (
           <Link key={item.href} href={item.href} className="text-muted-foreground hover:text-foreground">
             {item.label}
           </Link>
         ))}
       </nav>
-      <div className="flex items-center gap-3 text-sm">
+      <div className="ml-auto flex items-center gap-3 text-sm">
         <span>
           {user.name} <span className="text-muted-foreground">· {ROLE_LABEL[user.role]}</span>
         </span>

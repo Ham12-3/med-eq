@@ -1,0 +1,32 @@
+[
+  {
+    "task": "1. Report a fault in two taps",
+    "screen": "ward-1.png",
+    "ok": true,
+    "note": ""
+  },
+  {
+    "task": "2. Find the nearest working device",
+    "screen": "ward-2.png",
+    "ok": true,
+    "note": ""
+  },
+  {
+    "task": "3. Scan a device and check it is safe to use",
+    "screen": "ward-3.png",
+    "ok": true,
+    "note": ""
+  },
+  {
+    "task": "4. See which devices are on my ward",
+    "screen": "ward-4.png",
+    "ok": true,
+    "note": "Devices on this ward (52, by where they were last seen)"
+  },
+  {
+    "task": "5. Mark a device as in use or free",
+    "screen": "ward-5.png",
+    "ok": true,
+    "note": ""
+  }
+]

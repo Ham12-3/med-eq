@@ -1,0 +1,32 @@
+[
+  {
+    "task": "1. Check a device out to a ward",
+    "screen": "library-1.png",
+    "ok": true,
+    "note": ""
+  },
+  {
+    "task": "2. Check a device in, cleaned and charged",
+    "screen": "library-2.png",
+    "ok": true,
+    "note": ""
+  },
+  {
+    "task": "3. See ready stock by model",
+    "screen": "library-3.png",
+    "ok": true,
+    "note": ""
+  },
+  {
+    "task": "4. Chase devices out and overdue for return",
+    "screen": "library-4.png",
+    "ok": true,
+    "note": "36 loans to chase"
+  },
+  {
+    "task": "5. Send a faulty return to the workshop",
+    "screen": "library-5.png",
+    "ok": true,
+    "note": ""
+  }
+]

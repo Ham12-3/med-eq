@@ -1,0 +1,32 @@
+[
+  {
+    "task": "1. See overdue PPM and compliance at a glance",
+    "screen": "manager-1.png",
+    "ok": true,
+    "note": "Compliance 91.8%, 32 overdue"
+  },
+  {
+    "task": "2. Review failed tests from the last 90 days",
+    "screen": "manager-2.png",
+    "ok": true,
+    "note": "8 rows"
+  },
+  {
+    "task": "3. Run a recall search and track a notice to closure",
+    "screen": "manager-3.png",
+    "ok": true,
+    "note": ""
+  },
+  {
+    "task": "4. Balance technician workload and reassign jobs",
+    "screen": "manager-4.png",
+    "ok": true,
+    "note": "Queues: Chasity Lockman (0 open), Cordell Ondricka (13 open), Daphne Gutmann (16 open), Jazlyn Lubowitz (21 open), Kenna Herzog (12 open), Norbert Gislason (21 open)"
+  },
+  {
+    "task": "5. Export reports and review EM risk scores",
+    "screen": "manager-5.png",
+    "ok": true,
+    "note": "Overdue PPM CSV downloads"
+  }
+]

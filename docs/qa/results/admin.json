@@ -1,0 +1,32 @@
+[
+  {
+    "task": "1. Log an incident and flag a Yellow Card report",
+    "screen": "admin-1.png",
+    "ok": true,
+    "note": ""
+  },
+  {
+    "task": "2. Log a safety notice and track matched devices",
+    "screen": "admin-2.png",
+    "ok": true,
+    "note": "Matched devices (15)"
+  },
+  {
+    "task": "3. Export audit evidence for a device",
+    "screen": "admin-3.png",
+    "ok": true,
+    "note": ""
+  },
+  {
+    "task": "4. Manage users and roles",
+    "screen": "admin-4.png",
+    "ok": false,
+    "note": "expect(locator).toBeVisible() failed"
+  },
+  {
+    "task": "5. Manage reference data: models, rooms, templates",
+    "screen": "admin-5.png",
+    "ok": true,
+    "note": "Models only; no pages for rooms or test templates"
+  }
+]

@@ -826,6 +826,18 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
 
 Run each role's top tasks in Chrome. Write `docs/qa.md` with screenshots.
 
+**First pass done (27 Oct 2026).** `pnpm qa:roles` walks all 25 tasks on the test database and saves screenshots. The full write-up is in [docs/qa.md](docs/qa.md).
+
+- **23 of 25 tasks work.**
+- **Fixed during QA:** the main menu now sits on its own row, so it no longer wraps for the manager and admin. The ward home lists the devices on the nurse's ward, by room.
+- **Still open:**
+  - `/assets/new` (technician task 5);
+  - `/admin/users` (admin task 4);
+  - pages for rooms and test templates;
+  - uneven page widths;
+  - very old seeded library loans;
+  - the fault photo and job cancelling, carried over from M3.
+
 ### Dependencies to approve for M1
 
 These follow the CLAUDE.md "ask first" rule. Approving this plan approves this list. Anything else gets asked about separately.

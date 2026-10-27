@@ -29,6 +29,7 @@ pnpm dev          # http://localhost:3000, sign in as any seeded user
 | `pnpm test` | Unit tests, then database tests against `medasset_test` |
 | `pnpm test:unit` | Unit tests only; no database needed |
 | `pnpm test:e2e` | Playwright: its own dev server on port 3100 against a freshly seeded test database |
+| `pnpm qa:roles` | M6 walkthrough: each role's top 5 tasks on the e2e server and test database, with a screenshot per task in `docs/qa/screens` (see `docs/qa.md`) |
 | `pnpm job:daily` | Runs the daily job once: opens PPM jobs due within 14 days, re-sets overdue priorities. In production a scheduler calls `POST /api/cron/daily` with `Authorization: Bearer $CRON_SECRET` |
 | `pnpm db:bench` | Times location and status queries at 50,000 assets in a throwaway `medasset_bench` database |
 | `pnpm map:stress-db` / `map:measure` | Build a throwaway `medasset_stress` database with 2,000 devices on one floor; time the 3D map's first frame and orbit frame rate against a running production server (see the script headers) |
