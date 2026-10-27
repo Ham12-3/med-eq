@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { FloorPlan } from "@/lib/map/layout";
-import { MAP_STATUSES, MAP_STYLE, type MapMarker, type MapStatus } from "@/lib/map/status";
+import { MAP_STATUSES, MAP_STYLE, MATCH_TEXT, type ContextDot, type MapMarker, type MapStatus } from "@/lib/map/status";
 
 // three.js needs the browser, so the canvas never renders on the server.
 const FloorMap = dynamic(() => import("@/components/3d/floor-map"), {
@@ -16,27 +16,45 @@ const FloorMap = dynamic(() => import("@/components/3d/floor-map"), {
 
 const ICON: Record<MapStatus, typeof Ban> = { recalled: CircleAlert, do_not_use: Ban, due_soon: Clock, in_use: Hand, available: CircleCheck };
 
-type Props = { floorId: string; plan: FloorPlan; markers: MapMarker[]; counts: Record<MapStatus, number> };
+type Props = {
+  floorId: string;
+  plan: FloorPlan;
+  markers: MapMarker[];
+  context: ContextDot[];
+  counts: Record<MapStatus, number>;
+  /** Set in "Show recall" mode. */
+  recall: { reference: string; title: string } | null;
+};
 
-export function MapView({ floorId, plan, markers, counts }: Props) {
+export function MapView({ floorId, plan, markers, context, counts, recall }: Props) {
   const [visible, setVisible] = useState<Record<MapStatus, boolean>>(
     Object.fromEntries(MAP_STATUSES.map((s) => [s, true])) as Record<MapStatus, boolean>,
   );
   const [showLabels, setShowLabels] = useState(true);
   const [selected, setSelected] = useState<MapMarker | null>(null);
   const [hover, setHover] = useState<{ marker: MapMarker; x: number; y: number } | null>(null);
+  const [fitKey, setFitKey] = useState(0);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
       <div className="relative h-[60vh] min-h-96 overflow-hidden rounded-lg border" data-testid="floor-map">
-        <FloorMap floorId={floorId} plan={plan} markers={markers} visible={visible} showLabels={showLabels}
-          selectedId={selected?.id ?? null} onSelect={setSelected} onHover={setHover} />
+        <FloorMap floorId={floorId} plan={plan} markers={markers} context={context} visible={visible} showLabels={showLabels}
+          fitKey={fitKey} selectedId={selected?.id ?? null} onSelect={setSelected} onHover={setHover} />
+        <Button variant="outline" size="sm" className="bg-background/90 absolute top-2 right-2" onClick={() => { setSelected(null); setFitKey((k) => k + 1); }}>
+          Reset view
+        </Button>
+        {recall && (
+          <p className="pointer-events-none absolute top-2 left-2 rounded-md bg-red-800 px-2 py-1 text-xs font-medium text-white" data-testid="recall-banner">
+            Showing recall {recall.reference}: {markers.length} on this floor
+          </p>
+        )}
         {hover && (
           <div role="tooltip" className="bg-popover text-popover-foreground pointer-events-none absolute z-10 w-max max-w-60 rounded-md border px-2 py-1 text-xs shadow"
             style={{ left: hover.x + 12, top: hover.y + 12 }}>
             <div className="font-medium">{hover.marker.modelName}</div>
             <div className="font-mono">{hover.marker.giai}</div>
             <div>{MAP_STYLE[hover.marker.status].label}{hover.marker.reasons.length ? `: ${hover.marker.reasons.join(", ")}` : ""}</div>
+            {hover.marker.match && <div>Recall: {MATCH_TEXT[hover.marker.match]}</div>}
           </div>
         )}
       </div>
@@ -65,7 +83,12 @@ export function MapView({ floorId, plan, markers, counts }: Props) {
           <label className="flex items-center gap-2 border-t pt-2 text-sm">
             <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> Room names
           </label>
-          <p className="text-muted-foreground text-xs">Drag to turn, scroll to zoom, right-drag to move.</p>
+          {context.length > 0 && (
+            <p className="text-muted-foreground flex items-center gap-2 border-t pt-2 text-xs">
+              <span className="inline-block size-2.5 rounded-full bg-zinc-400" aria-hidden /> {context.length} other devices, filtered out
+            </p>
+          )}
+          <p className="text-muted-foreground text-xs">Drag to turn, scroll to zoom, right-drag to move. Click a device to fly to it.</p>
         </section>
 
         <section aria-label="Selected device" className="flex flex-col gap-2 rounded-lg border p-3" aria-live="polite">
@@ -75,6 +98,7 @@ export function MapView({ floorId, plan, markers, counts }: Props) {
               <p className="font-mono text-sm">{selected.giai}</p>
               <p className="text-sm">{MAP_STYLE[selected.status].label} · {selected.roomName}</p>
               {selected.reasons.length > 0 && <p className="text-sm text-red-700 dark:text-red-400">{selected.reasons.join(", ")}</p>}
+              {selected.match && recall && <p className="text-sm">Recall {recall.reference}: {MATCH_TEXT[selected.match]}</p>}
               <div className="flex gap-2">
                 <Link href={`/assets/${selected.id}`} className="text-sm underline underline-offset-4">Open device record</Link>
                 <Button variant="outline" size="sm" onClick={() => setSelected(null)}>Clear</Button>

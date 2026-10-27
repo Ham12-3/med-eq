@@ -1,6 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { sql } from "drizzle-orm";
-import { one, signIn, userWithRole } from "./helpers";
+import { withUser } from "@/db/client";
+import { loadActiveUser } from "@/lib/auth/users";
+import { createNotice } from "@/lib/data/notices";
+import { db, one, signIn, userWithRole } from "./helpers";
 
 async function waitForCanvas(page: Page) {
   await expect(page.getByTestId("floor-map").locator("canvas")).toBeVisible({ timeout: 60_000 });
@@ -59,6 +62,76 @@ test("switches floor and lists every device by room without the 3D view", async 
   await expect(list.locator("details")).toHaveCount(10);
   await list.locator("summary", { hasText: "Clinic Room 1" }).click();
   await expect(list.getByRole("link", { name: /^0299999/ }).first()).toBeVisible();
+});
+
+test("clicking a device flies the camera to it, and Reset view shows the whole floor again", async ({ page }) => {
+  await signIn(page, await userWithRole("technician"), "/map", "Map");
+  await waitForCanvas(page);
+  const device = await one<{ id: string }>(sql`
+    select a.id from assets a join asset_current_location l on l.asset_id = a.id
+    join rooms r on r.id = l.room_id and r.name = 'EBME Workshop' order by a.giai limit 1`);
+  const box = (await page.getByTestId("floor-map").locator("canvas").boundingBox())!;
+  const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  const offCentre = async () => {
+    const p = await markerOnScreen(page, device.id);
+    return Math.hypot(p.x - centre.x, p.y - centre.y);
+  };
+
+  const before = await offCentre();
+  const point = await markerOnScreen(page, device.id);
+  await page.mouse.click(point.x, point.y);
+  await expect.poll(offCentre, { timeout: 10_000 }).toBeLessThan(20); // now in the middle of the view
+  expect(before).toBeGreaterThan(60);
+
+  await page.getByRole("button", { name: "Reset view" }).click();
+  await expect.poll(offCentre, { timeout: 10_000 }).toBeGreaterThan(60);
+  await expect(page.getByRole("region", { name: "Selected device" })).toContainText("Click a device on the map");
+});
+
+test("filters by model and owner, carrying the filter across floors", async ({ page }) => {
+  await signIn(page, await userWithRole("manager"), "/map", "Map");
+  await page.getByLabel("Model").selectOption({ label: "Critical care ventilator CV-800" });
+  await page.getByRole("button", { name: "Show" }).click();
+  await page.waitForURL(/model=ventilator/, { timeout: 30_000 });
+
+  const list = page.getByRole("region", { name: "Devices on this floor, by room" });
+  await expect(list.getByRole("link", { name: /^0299999VEN/ }).first()).toBeVisible();
+  await expect(list.getByRole("link", { name: /^0299999(?!VEN)/ })).toHaveCount(0);
+
+  // Ventilators are mostly in critical care, on the first floor; the switcher shows each floor's count.
+  const firstFloor = page.getByRole("link", { name: /Main Building, First floor/ });
+  await firstFloor.click();
+  await page.waitForURL((url) => url.searchParams.get("model") === "ventilator" && url.searchParams.has("floor"), { timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "List view: Main Building, First floor" })).toBeVisible();
+  await expect(list.getByRole("link", { name: /^0299999VEN/ }).first()).toBeVisible();
+});
+
+test("Show recall highlights only the devices a safety notice matched", async ({ page }) => {
+  // Log a notice through the app's own data layer, attributed to the MDSO.
+  const admin = await userWithRole("admin");
+  const mdso = (await loadActiveUser(db, admin.id))!;
+  const model = await one<{ id: string }>(sql`select id from device_models where slug = 'defibrillator'`);
+  const notice = await withUser(db, mdso.id, (tx) => createNotice(tx, mdso, {
+    reference: "FSN/E2E/MAP", source: "fsn", title: "Charge circuit may fail", description: "Test notice for the map.",
+    requiredAction: "Replace the charge board", issuedOn: "2026-10-01", deadline: "2030-01-31", quarantineRequired: true,
+    criteria: [{ deviceModelId: model.id, serialFrom: null, serialTo: null, firmwareVersions: null }],
+  }));
+
+  await signIn(page, admin, "/map", "Map");
+  await page.getByLabel("Show recall").selectOption({ label: "FSN/E2E/MAP: Charge circuit may fail" });
+  await page.getByRole("button", { name: "Show" }).click();
+  await page.waitForURL(/notice=/, { timeout: 30_000 });
+  await waitForCanvas(page);
+
+  await expect(page.getByTestId("recall-banner")).toContainText("Showing recall FSN/E2E/MAP");
+  const list = page.getByRole("region", { name: "Devices on this floor, by room" });
+  await expect(list.getByText("recall: waiting for action").first()).toBeVisible();
+  await expect(list.getByRole("link", { name: /^0299999(?!DEF)/ })).toHaveCount(0);
+  await expect(page.getByTestId("count-recalled")).not.toHaveText("0");
+
+  const floors = page.getByRole("navigation", { name: "Floors" }).getByRole("link");
+  const total = (await floors.allTextContents()).reduce((s, t) => s + Number(/\((\d+)\)/.exec(t)?.[1] ?? 0), 0);
+  expect(total).toBe(notice.matched);
 });
 
 test("hiding a status in the legend leaves the counts and list alone", async ({ page }) => {

@@ -2,10 +2,13 @@
 
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { FloorPlan, PlanRoom } from "@/lib/map/layout";
-import { MAP_STATUSES, MAP_STYLE, type MapMarker, type MapStatus, type MarkerShape } from "@/lib/map/status";
+import { MAP_STATUSES, MAP_STYLE, type ContextDot, type MapMarker, type MapStatus, type MarkerShape } from "@/lib/map/status";
+
+/** The parts of drei's OrbitControls used here. */
+type Orbit = THREE.EventDispatcher<{ start: object }> & { target: THREE.Vector3; update: () => void };
 
 // The placeholder floor plan (PLAN.md M5 step 1), drawn from the rooms table. Each room's
 // group is named room_<GLN>, as in the Blender model that will replace it (M5 step 2).
@@ -14,7 +17,11 @@ export type FloorMapProps = {
   floorId: string;
   plan: FloorPlan;
   markers: MapMarker[];
+  /** Devices the filters leave out, drawn as grey dots. */
+  context: ContextDot[];
   visible: Record<MapStatus, boolean>;
+  /** Changing this refits the whole floor in view ("Reset view"). */
+  fitKey: number;
   showLabels: boolean;
   selectedId: string | null;
   onSelect: (marker: MapMarker | null) => void;
@@ -46,7 +53,8 @@ export default function FloorMap(props: FloorMapProps) {
       <directionalLight position={[20, 40, 15]} intensity={1.1} />
       <Scene {...props} />
       <OrbitControls makeDefault target={[0, 0, 0]} maxPolarAngle={Math.PI * 0.45} minDistance={6} maxDistance={span * 2} />
-      <FitCamera plan={props.plan} />
+      <FitCamera plan={props.plan} fitKey={props.fitKey} />
+      <FlyTo marker={props.markers.find((m) => m.id === props.selectedId) ?? null} />
       {process.env.NODE_ENV !== "production" && <ScreenProbe markers={props.markers} />}
     </Canvas>
   );
@@ -77,7 +85,7 @@ function ScreenProbe({ markers }: { markers: MapMarker[] }) {
 const ELEVATION = THREE.MathUtils.degToRad(55); // looking down at the floor from 55° above the horizon
 
 /** Places the camera so the whole floor fills the view, and again whenever the canvas is resized. */
-function FitCamera({ plan }: { plan: FloorPlan }) {
+function FitCamera({ plan, fitKey }: { plan: FloorPlan; fitKey: number }) {
   const { camera, size, controls } = useThree();
   useLayoutEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
@@ -90,14 +98,53 @@ function FitCamera({ plan }: { plan: FloorPlan }) {
     cam.position.set(0, distance * Math.sin(ELEVATION), distance * Math.cos(ELEVATION));
     cam.lookAt(0, 0, 0);
     cam.updateProjectionMatrix();
-    const orbit = controls as unknown as { target: THREE.Vector3; update: () => void } | null;
+    const orbit = controls as unknown as Orbit | null;
     orbit?.target.set(0, 0, 0);
     orbit?.update();
-  }, [camera, controls, plan, size.width, size.height]);
+  }, [camera, controls, plan, size.width, size.height, fitKey]);
   return null;
 }
 
-function Scene({ floorId, plan, markers, visible, showLabels, selectedId, onSelect, onHover }: FloorMapProps) {
+const FLY_DISTANCE = 14; // metres from the device when the flight ends
+
+/**
+ * Glides the camera to a newly selected device, keeping the current viewing direction.
+ * Grabbing the view (turn, zoom, pan) stops the flight.
+ */
+function FlyTo({ marker }: { marker: MapMarker | null }) {
+  const { camera, controls } = useThree();
+  const flight = useRef<{ target: THREE.Vector3; position: THREE.Vector3 } | null>(null);
+
+  useLayoutEffect(() => {
+    const orbit = controls as unknown as Orbit | null;
+    if (!marker || !orbit) return;
+    const target = new THREE.Vector3(marker.x, 0, marker.z);
+    const direction = camera.position.clone().sub(orbit.target).normalize();
+    flight.current = { target, position: target.clone().add(direction.multiplyScalar(FLY_DISTANCE)) };
+  }, [marker, camera, controls]);
+
+  useEffect(() => {
+    const orbit = controls as unknown as Orbit | null;
+    if (!orbit) return;
+    const cancel = () => { flight.current = null; };
+    orbit.addEventListener("start", cancel);
+    return () => orbit.removeEventListener("start", cancel);
+  }, [controls]);
+
+  useFrame((_, delta) => {
+    const f = flight.current;
+    const orbit = controls as unknown as Orbit | null;
+    if (!f || !orbit) return;
+    const k = 1 - Math.exp(-delta * 6); // eases out over about half a second
+    camera.position.lerp(f.position, k);
+    orbit.target.lerp(f.target, k);
+    orbit.update();
+    if (camera.position.distanceTo(f.position) < 0.02) flight.current = null;
+  });
+  return null;
+}
+
+function Scene({ floorId, plan, markers, context, visible, showLabels, selectedId, onSelect, onHover }: FloorMapProps) {
   const selected = markers.find((m) => m.id === selectedId) ?? null;
   return (
     <group name={`floor_${floorId}`}>
@@ -106,6 +153,7 @@ function Scene({ floorId, plan, markers, visible, showLabels, selectedId, onSele
         <meshStandardMaterial color="#d4d4d8" />
       </mesh>
       {plan.rooms.map((room) => <Room key={room.id} room={room} showLabel={showLabels} />)}
+      {context.length > 0 && <ContextDots key={`${floorId}-context-${context.length}`} dots={context} />}
 
       {MAP_STATUSES.map((status) => {
         const shown = visible[status] ? markers.filter((m) => m.status === status) : [];
@@ -177,6 +225,25 @@ function RoomLabel({ text, position }: { text: string; position: [number, number
     <sprite position={position} scale={[height * aspect, height, 1]} raycast={() => null}>
       <spriteMaterial map={texture} depthWrite={false} />
     </sprite>
+  );
+}
+
+/** Devices left out by the filters: small, grey, and not clickable. */
+function ContextDots({ dots }: { dots: ContextDot[] }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  useLayoutEffect(() => {
+    dots.forEach((d, i) => {
+      tmp.p.set(d.x, 0.06 + d.size, d.z);
+      tmp.s.set(d.size, d.size, d.size);
+      ref.current?.setMatrixAt(i, tmp.m.compose(tmp.p, tmp.q.identity(), tmp.s));
+    });
+    if (ref.current) ref.current.instanceMatrix.needsUpdate = true;
+  }, [dots]);
+  return (
+    <instancedMesh ref={ref} args={[undefined, undefined, dots.length]} raycast={() => null} name="markers_filtered_out">
+      <sphereGeometry args={[1, 10, 8]} />
+      <meshStandardMaterial color="#a1a1aa" transparent opacity={0.6} />
+    </instancedMesh>
   );
 }
 

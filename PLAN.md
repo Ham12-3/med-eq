@@ -787,7 +787,12 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
 - **Markers.** There is one instanced mesh per status. Each status has its own shape as well as its colour. "Do not use" and recalled markers pulse and carry a "!" disc. Decommissioned devices are not shown.
 - **Done early from step 3:** a hover tooltip, a click-to-select side panel with a link to the record, and legend toggles that show or hide each status.
 - **Done early from step 4:** the list view of every device by room.
-- **Still to do:** flying the camera to a selection, the detailed device `.glb` viewer, filters by model and department, the "Show recall" mode, and performance measurement.
+- **Done since, from step 3:**
+  - Clicking a device flies the camera to it over about half a second. Grabbing the view cancels the flight, and "Reset view" refits the floor.
+  - Filters by model and owning department, kept in the URL and carried across floors.
+  - "Show recall" for any safety notice: only matched devices show, each with its standing on the notice, and the floor buttons show where they are.
+  - Devices left out by a filter stay as grey dots, in the same place.
+- **Still to do:** the detailed device `.glb` viewer (needs the art track's models) and performance measurement (step 4).
 - **No drei `<Html>`.** Its per-element React roots raise unmount errors under React 19. Room labels are canvas sprites, and the tooltip is a normal page element.
 - **The camera fits itself** to the floor's length and depth, and refits on resize.
 - **Development-only test probe.** Dev builds expose `window.__medassetMarkerOnScreen(id)`, so Playwright can point the real mouse at a marker. Searching for markers by sweeping the canvas is too slow in headless Chromium's software WebGL.

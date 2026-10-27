@@ -32,4 +32,11 @@ export type MapMarker = {
   x: number;
   z: number;
   size: number; // marker radius in metres
+  /** In "Show recall" mode: where this device stands on the chosen notice. */
+  match: "open" | "actioned" | "not_affected" | null;
 };
+
+/** A device left out by the filters: drawn as a small grey dot so the room still reads as full. */
+export type ContextDot = { x: number; z: number; size: number };
+
+export const MATCH_TEXT = { open: "Waiting for action", actioned: "Actioned", not_affected: "Not affected" } as const;
