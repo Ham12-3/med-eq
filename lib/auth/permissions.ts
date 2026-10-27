@@ -85,6 +85,7 @@ const ROUTE_ACTIONS: [prefix: string, action: Action, exact?: "exact"][] = [
   ["/assets", "asset.viewRegister", "exact"], // the register itself
   ["/assets", "asset.view"], // one device's page, which ward staff may see
   ["/find", "device.find"],
+  ["/map", "asset.view"],
   ["/work", "workorder.viewQueue"],
   ["/dashboard", "report.view"],
   ["/reports", "report.view"],

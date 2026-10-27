@@ -781,6 +781,18 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
 3. **Interaction.** Hover tooltip, click to fly the camera there, side panel with the detailed device `.glb`, filters, "Show recall" mode.
 4. **Performance.** First view under 3 s and 60 fps while orbiting, measured and reported. A list-view equivalent for every map action.
 
+**Step 1 done (27 Oct 2026), with parts of steps 3 and 4 started.** Notes from building it:
+
+- **Layout.** `lib/map/layout.ts` lays rooms along the corridor using the Phase 5 sizes. Rooms never overlap, the floor is centred on the origin, and each room group is named `room_<GLN>`.
+- **Markers.** There is one instanced mesh per status. Each status has its own shape as well as its colour. "Do not use" and recalled markers pulse and carry a "!" disc. Decommissioned devices are not shown.
+- **Done early from step 3:** a hover tooltip, a click-to-select side panel with a link to the record, and legend toggles that show or hide each status.
+- **Done early from step 4:** the list view of every device by room.
+- **Still to do:** flying the camera to a selection, the detailed device `.glb` viewer, filters by model and department, the "Show recall" mode, and performance measurement.
+- **No drei `<Html>`.** Its per-element React roots raise unmount errors under React 19. Room labels are canvas sprites, and the tooltip is a normal page element.
+- **The camera fits itself** to the floor's length and depth, and refits on resize.
+- **Development-only test probe.** Dev builds expose `window.__medassetMarkerOnScreen(id)`, so Playwright can point the real mouse at a marker. Searching for markers by sweeping the canvas is too slow in headless Chromium's software WebGL.
+- **Bundle size.** The 3D code is about 0.9 MB uncompressed, loaded only on `/map`.
+
 ### Art track (Phases 5–7, 9), after M4
 
 | Step | Phase | Work |

@@ -13,6 +13,7 @@ const NAV: { href: string; label: string; action: Action }[] = [
   { href: "/assets", label: "Assets", action: "asset.viewRegister" },
   { href: "/scan", label: "Scan", action: "location.record" },
   { href: "/find", label: "Find", action: "device.find" },
+  { href: "/map", label: "Map", action: "asset.view" },
   { href: "/dashboard", label: "Dashboard", action: "report.view" },
   { href: "/ward", label: "Ward", action: "fault.report" },
   { href: "/library", label: "Library", action: "library.checkInOut" },
