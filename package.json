@@ -19,7 +19,8 @@
     "db:seed": "tsx scripts/db.ts seed",
     "db:reset": "tsx scripts/db.ts reset",
     "db:counts": "tsx scripts/db.ts counts",
-    "db:bench": "tsx scripts/bench-location.ts"
+    "db:bench": "tsx scripts/bench-location.ts",
+    "job:daily": "tsx scripts/daily.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

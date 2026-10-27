@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { ROLE_LABEL } from "@/lib/auth/permissions";
 import { requirePermission } from "@/lib/auth/session";
 
-// Big buttons for ward staff. Fault reporting arrives in M3.
+// Big buttons for ward staff.
 
 export default function WardPage() {
   return (
@@ -34,10 +34,10 @@ async function WardHome() {
           <Search aria-hidden className="size-7" /> Find a device
           <span className="text-muted-foreground text-sm font-normal">The nearest working one</span>
         </Link>
-        <div className={`${tile} text-muted-foreground border-dashed`} aria-disabled>
+        <Link href="/report-fault" className={`${tile} hover:bg-muted`}>
           <TriangleAlert aria-hidden className="size-7" /> Report a fault
-          <span className="text-sm font-normal">Coming in milestone M3</span>
-        </div>
+          <span className="text-muted-foreground text-sm font-normal">Two taps: the device, then what is wrong</span>
+        </Link>
       </div>
     </>
   );

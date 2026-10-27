@@ -1,23 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { sql } from "drizzle-orm";
-import { createDb } from "@/db/client";
 import { barcode, installFakeCamera, show } from "./fake-camera";
-
-const { client, db } = createDb(process.env.TEST_DATABASE_URL!, { max: 2 });
-test.afterAll(() => client.end());
-
-async function one<T>(query: ReturnType<typeof sql>): Promise<T> {
-  const [row] = await db.execute<Record<string, unknown>>(query);
-  return row as T;
-}
+import { one, signIn, userWithRole } from "./helpers";
 
 async function signInAs(page: Page, role: string) {
-  const user = await one<{ id: string; name: string }>(sql`select id, name from users where role = ${role} and active order by name limit 1`);
-  await page.goto("/login?callbackUrl=/scan");
-  await page.getByRole("button", { name: new RegExp(user.name) }).click();
-  // Check the pathname: a regex on the URL would also match /login?callbackUrl=/scan.
-  await page.waitForURL((url) => url.pathname === "/scan", { timeout: 60_000 });
-  await expect(page.getByRole("heading", { name: "Scan", level: 1 })).toBeVisible({ timeout: 30_000 });
+  const user = await userWithRole(role);
+  await signIn(page, user, "/scan", "Scan");
   return user;
 }
 

@@ -714,6 +714,23 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
 6. **SERVICED label PDF.**
 7. **`/library`.** Check out and in (writes a location event and a library movement), ready stock **[Q4]**.
 
+**Steps 1–5 done (27 Oct 2026). Steps 6 and 7 are next.** Notes from building it:
+
+- **No fault found still needs every test.** CLAUDE.md's rule beats section 3.3's exception.
+- **A repair cannot close while a required test fails.** Fix and retest, or close it as beyond economic repair, which decommissions the device.
+- **A failed PPM or acceptance does close** (Q3). The device is quarantined, the schedule stays put, and a follow-up repair opens for the same technician.
+- **Initial inspection** must record clean = yes, decontaminated = yes, and the control settings.
+- **Starting a repair** takes the device out of service (`under_repair`). Working on an unstarted job starts it.
+- **Job numbers** come from the `work_order_number_seq` sequence.
+- **The daily job** runs through `POST /api/cron/daily` with `CRON_SECRET`, or `pnpm job:daily`:
+  - it is idempotent;
+  - it gives new jobs to the technician with the fewest open jobs;
+  - for now its PPM priority uses the EM score without incident history, until M4's nightly EM recalculation.
+- **Not done yet:**
+  - the optional fault photo, which needs file storage;
+  - an action-notes field for recall jobs, which arrives with safety notices in M4;
+  - cancelling a job.
+
 ### M4: Risk, notices and reports (Phase 4)
 
 1. **EM calculator.** Nightly recalculation and score history, with tests on the incident-history scoring bands.

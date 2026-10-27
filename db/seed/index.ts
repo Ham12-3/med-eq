@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
 import type { IsoDate } from "@/lib/dates";
 import { withUser, type Db, type Tx } from "../client";
@@ -40,5 +41,7 @@ export async function seedDatabase(db: Db, options: { today: IsoDate; seed?: num
     await insertChunked(tx, s.testResults, data.testResults);
     await insertChunked(tx, s.partsUsed, data.partsUsed);
     await insertChunked(tx, s.locationEvents, data.locationEvents);
+    // New jobs number on from the last seeded one (WO-000829 becomes 829).
+    await tx.execute(sql`select setval('work_order_number_seq', ${data.workOrders.length})`);
   });
 }

@@ -44,6 +44,12 @@ async function Device({ params }: { params: PageProps<"/assets/[id]">["params"] 
 
       <SafetyBanner asset={asset} />
 
+      {can(user, "fault.report") && asset.lifecycleStatus !== "decommissioned" && (
+        <p className="text-sm">
+          <Link href={`/report-fault?asset=${asset.id}`} className="underline underline-offset-4">Report a fault with this device</Link>
+        </p>
+      )}
+
       <section className="grid gap-4 md:grid-cols-2">
         <Card title="Where it is">
           {asset.roomName ? (
@@ -120,7 +126,7 @@ function FullRecord({ asset, history, today }: { asset: AssetSummary; history: A
                 <li key={w.id} className="py-3">
                   <details>
                     <summary className="flex cursor-pointer flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
-                      <span className="font-mono">{w.number}</span>
+                      <Link href={`/work/${w.id}`} className="font-mono underline-offset-4 hover:underline">{w.number}</Link>
                       <span className="font-medium uppercase">{w.type}</span>
                       <span>{w.outcome ? w.outcome.replaceAll("_", " ") : w.status.replaceAll("_", " ")}</span>
                       <span className="text-muted-foreground">

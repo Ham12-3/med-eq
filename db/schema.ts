@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
-  pgTable, pgEnum, pgView, uuid, text, smallint, integer, bigint, bigserial, boolean,
+  pgTable, pgEnum, pgView, pgSequence, uuid, text, smallint, integer, bigint, bigserial, boolean,
   date, timestamp, numeric, jsonb, index, uniqueIndex, check,
 } from "drizzle-orm/pg-core";
 
@@ -285,9 +285,13 @@ export type InspectionRecord = {
   notes?: string;
 };
 
+/** Hands out WO numbers safely under concurrency. The seed moves it past the seeded numbers. */
+export const workOrderNumberSeq = pgSequence("work_order_number_seq", { startWith: 1 });
+
 export const workOrders = pgTable("work_orders", {
   id: id(),
-  number: text("number").notNull().unique(), // WO-000123
+  number: text("number").notNull().unique()
+    .default(sql`'WO-' || lpad(nextval('work_order_number_seq')::text, 6, '0')`), // WO-000123
   type: workOrderType("type").notNull(),
   status: workOrderStatus("status").notNull().default("open"),
   priority: workOrderPriority("priority").notNull().default("normal"),
