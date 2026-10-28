@@ -19,14 +19,17 @@ export async function runDailyJob(db: Db, today: IsoDate): Promise<DailyResult> 
   return withUser(db, SYSTEM_USER_ID, (tx) => runDailyJobIn(tx, today));
 }
 
-/** The job itself, inside a transaction already attributed to the system user. */
-export async function runDailyJobIn(tx: Tx, today: IsoDate): Promise<DailyResult> {
+/**
+ * The job itself, inside a transaction already attributed to the system user.
+ * `at` stamps the scores and jobs it adds; it defaults to the database clock.
+ */
+export async function runDailyJobIn(tx: Tx, today: IsoDate, at?: Date): Promise<DailyResult> {
   {
     // Only one daily run at a time.
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext('medasset:daily-job'))`);
 
     // Scores first, so today's priorities use today's scores.
-    const emScored = await recalculateEmScores(tx, today);
+    const emScored = await recalculateEmScores(tx, today, { at });
 
     const due = await tx.execute<{ scheduleId: string; assetId: string; nextDueOn: string; templateId: string; em: number }>(sql`
       select p.id as "scheduleId", p.asset_id as "assetId", p.next_due_on::text as "nextDueOn",
@@ -52,7 +55,7 @@ export async function runDailyJobIn(tx: Tx, today: IsoDate): Promise<DailyResult
       const [job] = await tx.insert(workOrders).values({
         type: "ppm", status: "open", priority: ppmPriority(d.em, isOverdue(d.nextDueOn, today)),
         assetId: d.assetId, ppmScheduleId: d.scheduleId, testTemplateId: d.templateId,
-        assigneeId: tech?.id ?? null, reportedById: SYSTEM_USER_ID, dueOn: d.nextDueOn,
+        assigneeId: tech?.id ?? null, reportedById: SYSTEM_USER_ID, dueOn: d.nextDueOn, createdAt: at,
       }).onConflictDoNothing().returning({ number: workOrders.number });
       if (job) {
         created.push(job.number);

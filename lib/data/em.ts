@@ -55,19 +55,20 @@ export function scoreFrom(f: Pick<ModelFailures, "fn" | "risk" | "maintenance" |
 }
 
 /**
- * Adds today's score for every model not yet scored today. `force` re-scores one model,
+ * Adds today's score for every model not yet scored today. `modelId` re-scores that one model,
  * for example after its function, risk or maintenance scores were changed.
+ * `at` stamps the scores; it defaults to the database clock. The seed passes a time on its seeded day.
  */
-export async function recalculateEmScores(tx: Tx, today: IsoDate, force?: { modelId: string }): Promise<number> {
-  const rows = await failuresByModel(tx, today, force?.modelId);
+export async function recalculateEmScores(tx: Tx, today: IsoDate, options: { modelId?: string; at?: Date } = {}): Promise<number> {
+  const rows = await failuresByModel(tx, today, options.modelId);
   let written = 0;
   for (const row of rows) {
-    if (row.scoredToday && !force) continue;
+    if (row.scoredToday && !options.modelId) continue;
     const score = scoreFrom(row);
     await tx.insert(emScoreHistory).values({
       deviceModelId: row.modelId, function: row.fn, physicalRisk: row.risk, maintenance: row.maintenance,
       incidentHistory: score.incidentHistory, total: score.total,
-      failuresPerAssetYear: score.failuresPerAssetYear.toFixed(4),
+      failuresPerAssetYear: score.failuresPerAssetYear.toFixed(4), calculatedAt: options.at,
     });
     written++;
   }
