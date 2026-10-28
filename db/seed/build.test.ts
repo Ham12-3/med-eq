@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSeedData } from "./build";
-import { DEVICE_MODELS, REAL_BRAND_DENYLIST } from "./reference";
+import { DEVICE_MODELS, INCIDENT_PLAN, REAL_BRAND_DENYLIST } from "./reference";
 
 const TODAY = "2026-10-27";
 const data = buildSeedData(TODAY);
@@ -43,6 +43,17 @@ describe("seed builder", () => {
       if (wo.startedAt) expect(wo.startedAt.getTime()).toBeGreaterThanOrEqual(wo.createdAt!.getTime());
       if (wo.completedAt) expect(wo.completedAt.getTime()).toBeGreaterThanOrEqual(wo.startedAt!.getTime());
     }
+  });
+
+  it("puts each incident on a device of the model it describes", () => {
+    expect(data.incidents).toHaveLength(INCIDENT_PLAN.length);
+    const slugByModelId = new Map(data.deviceModels.map((m) => [m.id, m.slug]));
+    const slugByAssetId = new Map(data.assets.map((a) => [a.id, slugByModelId.get(a.deviceModelId)]));
+    for (const incident of data.incidents) {
+      const planned = INCIDENT_PLAN.find((p) => p.description === incident.description)!;
+      expect(slugByAssetId.get(incident.assetId!), incident.description).toBe(planned.model);
+    }
+    expect(new Set(data.incidents.map((i) => i.assetId)).size).toBe(data.incidents.length);
   });
 
   it("uses no real manufacturer names", () => {

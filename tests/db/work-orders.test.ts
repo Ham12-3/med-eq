@@ -183,6 +183,30 @@ describe("closing a PPM job", () => {
     });
   });
 
+  it("leaves a result alone when it is sent again unchanged", async () => {
+    const tech = await userWithRole("technician");
+    await asUser(tech, async (tx) => {
+      const job = await openPpmOnHealthyAsset(tx, tech);
+      const analyser = await usableAnalyser(tx);
+      const entries = passingEntries(job.items);
+      const pe = job.items.find((i) => i.kind === "measurement" && i.upper !== null)!;
+      expect(await saveResults(tx, job.id, tech, entries, analyser)).toBe(entries.length);
+
+      const resultAudit = async () => (await tx.execute<{ n: number }>(sql`
+        select count(*)::int as n from audit_log where table_name = 'test_results' and new_value->>'work_order_id' = ${job.id}`))[0].n;
+      const before = await resultAudit();
+
+      // The whole form again, with one reading changed: only that one is written.
+      const retest = entries.map((e) => e.itemId === pe.id ? { ...e, value: String(pe.upper! + 1) } : e);
+      expect(await saveResults(tx, job.id, tech, retest, analyser)).toBe(1);
+      expect(await resultAudit()).toBe(before + 1);
+
+      // Exactly the same again: nothing is written.
+      expect(await saveResults(tx, job.id, tech, retest, analyser)).toBe(0);
+      expect(await resultAudit()).toBe(before + 1);
+    });
+  });
+
   it("rejects not-applicable on a required check, a missing analyser and a non-number", async () => {
     const tech = await userWithRole("technician");
     await asUser(tech, async (tx) => {

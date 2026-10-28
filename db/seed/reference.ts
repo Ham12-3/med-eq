@@ -336,6 +336,23 @@ export const DEVICE_MODELS: DeviceModelSpec[] = [
 
 export const PART_SUPPLIERS = ["Northbrook Medical Spares Ltd", "Generic Clinical Parts Ltd", "Manufacturer service centre"];
 
+// ---------- MDSO incidents ----------
+/** Each incident names the model it happened on, so the story fits the device (checked by tests). */
+export const INCIDENT_PLAN: { description: string; harm: "no_harm" | "low" | "moderate"; model: string }[] = [
+  { description: "Infusion delivered faster than set; noticed at the 30-minute check", harm: "low", model: "volumetric-infusion-pump" },
+  { description: "Alarm did not sound when the line was occluded", harm: "no_harm", model: "syringe-driver" },
+  { description: "Device switched off during transfer; battery reading had shown full", harm: "no_harm", model: "ventilator" },
+  { description: "Patient bruising from a cuff that kept inflating", harm: "low", model: "spot-check-vital-signs-monitor" },
+  { description: "Bed side rail gave way when leant on; no fall", harm: "no_harm", model: "hospital-bed" },
+  { description: "Hoist lowered unexpectedly during transfer; patient unhurt", harm: "moderate", model: "patient-hoist" },
+  { description: "Display froze showing old readings", harm: "no_harm", model: "patient-monitor" },
+  { description: "Charging lead overheated at the plug", harm: "no_harm", model: "defibrillator" },
+  { description: "Suction weak during a procedure; second unit used", harm: "low", model: "suction-unit" },
+  { description: "Wrong date and time printed on the trace", harm: "no_harm", model: "ecg-machine" },
+  { description: "Monitor reset itself and lost alarm limits", harm: "low", model: "patient-monitor" },
+  { description: "Cracked casing found with fluid inside", harm: "no_harm", model: "volumetric-infusion-pump" },
+];
+
 /** Well-known real brands that must never appear in seed data (checked by tests). */
 export const REAL_BRAND_DENYLIST = [
   "baxter", "becton", "philips", "ge healthcare", "medtronic", "draeger", "dräger", "zoll", "arjo", "stryker",

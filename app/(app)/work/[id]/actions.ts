@@ -85,8 +85,10 @@ export async function saveResultsAction(_: FormState, formData: FormData) {
   if (entries.length === 0) return { error: "Enter at least one result." };
   const analyser = String(formData.get("analyserAssetId") ?? "") || null;
   return run("workorder.work", async (tx, user) => {
-    await saveResults(tx, jobId(formData), user, entries, analyser);
-    return `${entries.length} ${entries.length === 1 ? "result" : "results"} saved.`;
+    const changed = await saveResults(tx, jobId(formData), user, entries, analyser);
+    const unchanged = entries.length - changed;
+    if (changed === 0) return "No results changed.";
+    return `${changed} ${changed === 1 ? "result" : "results"} saved${unchanged ? `, ${unchanged} unchanged` : ""}.`;
   });
 }
 

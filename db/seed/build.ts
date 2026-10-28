@@ -13,7 +13,7 @@ import { measurementOutcome } from "@/lib/rules/testResult";
 import type * as s from "../schema";
 import { createRng } from "./random";
 import {
-  BUILDINGS, DEPARTMENTS, DEVICE_MODELS, PART_SUPPLIERS, SITE, SYSTEM_USER_ID, USER_PLAN,
+  BUILDINGS, DEPARTMENTS, DEVICE_MODELS, INCIDENT_PLAN, PART_SUPPLIERS, SITE, SYSTEM_USER_ID, USER_PLAN,
   type DeptCode, type DeviceModelSpec, type ElectricalSpec, type MeasurementSpec, type TestSpec,
 } from "./reference";
 
@@ -639,24 +639,13 @@ export function buildSeedData(today: IsoDate, seed: number = DEFAULT_SEED): Seed
   data.workOrders = workOrders.map((wo, i) => ({ ...wo, number: `WO-${String(i + 1).padStart(6, "0")}` }));
 
   // ---------- MDSO incidents (generated last, so adding them changed nothing above) ----------
-  const INCIDENTS: [description: string, harm: "no_harm" | "low" | "moderate"][] = [
-    ["Infusion delivered faster than set; noticed at the 30-minute check", "low"],
-    ["Alarm did not sound when the line was occluded", "no_harm"],
-    ["Device switched off during transfer; battery reading had shown full", "no_harm"],
-    ["Patient bruising from a cuff that kept inflating", "low"],
-    ["Bed side rail gave way when leant on; no fall", "no_harm"],
-    ["Hoist lowered unexpectedly during transfer; patient unhurt", "moderate"],
-    ["Display froze showing old readings", "no_harm"],
-    ["Charging lead overheated at the plug", "no_harm"],
-    ["Suction weak during a procedure; second unit used", "low"],
-    ["Wrong date and time printed on the trace", "no_harm"],
-    ["Monitor reset itself and lost alarm limits", "low"],
-    ["Cracked casing found with fluid inside", "no_harm"],
-  ];
   const incidentCandidates = rng.shuffle(drafts.filter((d) =>
     !d.spec.isTestEquipment && d.state === "normal" && d.purchaseDate <= addDays(windowStart, -30)));
-  INCIDENTS.forEach(([description, harmLevel], i) => {
-    const d = incidentCandidates[i];
+  const usedForIncident = new Set<string>();
+  INCIDENT_PLAN.forEach(({ description, harm: harmLevel, model }) => {
+    const d = incidentCandidates.find((c) => c.spec.slug === model && !usedForIncident.has(c.id));
+    if (!d) throw new Error(`No seeded ${model} is free for the incident "${description}".`);
+    usedForIncident.add(d.id);
     const on = addDays(windowStart, rng.int(0, daysBetween(windowStart, addDays(today, -3))));
     const occurredAt = atTime(on, rng.int(7, 20), rng.int(0, 59));
     const recent = on > addDays(today, -30);

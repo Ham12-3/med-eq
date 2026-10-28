@@ -232,8 +232,12 @@ export type ResultEntry =
 /**
  * Records "after" results. Measurement outcomes are worked out here from the limits,
  * never taken from the form. Entering a result again replaces it (the old value stays in the audit log).
+ * A result sent again unchanged is left alone, so its recorded time and the audit log stay true.
+ * Returns how many results were new or changed.
  */
-export async function saveResults(tx: Tx, id: string, user: CurrentUser, entries: ResultEntry[], analyserAssetId: string | null) {
+export async function saveResults(
+  tx: Tx, id: string, user: CurrentUser, entries: ResultEntry[], analyserAssetId: string | null,
+): Promise<number> {
   const wo = await lockJob(tx, id, user);
   if (!wo.testTemplateId) throw new JobError("This job has no test template.");
   const items = new Map((await tx.execute<JobItem>(sql`
@@ -249,6 +253,7 @@ export async function saveResults(tx: Tx, id: string, user: CurrentUser, entries
   }
 
   await ensureStarted(tx, wo, user);
+  let changed = 0;
   for (const entry of entries) {
     const item = items.get(entry.itemId);
     if (!item || item.kind !== entry.kind) throw new JobError("That test is not part of this job.");
@@ -271,10 +276,18 @@ export async function saveResults(tx: Tx, id: string, user: CurrentUser, entries
       analyserAssetId: item.requiresAnalyser && outcome !== "not_applicable" ? analyserAssetId : null,
       recordedById: user.id, recordedAt: new Date(),
     };
-    await tx.insert(testResults)
+    const written = await tx.insert(testResults)
       .values({ workOrderId: id, templateItemId: item.id, phase: "after", ...values })
-      .onConflictDoUpdate({ target: [testResults.workOrderId, testResults.templateItemId, testResults.phase], set: values });
+      .onConflictDoUpdate({
+        target: [testResults.workOrderId, testResults.templateItemId, testResults.phase],
+        set: values,
+        setWhere: sql`(${testResults.measuredValue}, ${testResults.outcome}, ${testResults.analyserAssetId})
+          is distinct from (excluded.measured_value, excluded.outcome, excluded.analyser_asset_id)`,
+      })
+      .returning({ id: testResults.id });
+    changed += written.length;
   }
+  return changed;
 }
 
 /** Recall jobs: what was done for the safety notice (needed before the job can close). */
