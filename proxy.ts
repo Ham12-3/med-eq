@@ -29,5 +29,5 @@ export const proxy = auth((req) => {
 
 export const config = {
   // Everything except Auth.js's own routes, Next internals and static files.
-  matcher: ["/((?!api/auth|api/cron|_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|glb|ktx2)$).*)"],
+  matcher: ["/((?!api/auth|api/cron|_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|glb|ktx2|wasm)$).*)"],
 };

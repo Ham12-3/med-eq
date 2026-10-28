@@ -20,6 +20,8 @@ async function markerOnScreen(page: Page, assetId: string) {
 test("the map shows the floor, a legend that matches the register, and selects a device", async ({ page }) => {
   await signIn(page, await userWithRole("technician"), "/map", "Map");
   await waitForCanvas(page);
+  // Every room is drawn from the Blender building (public/models/hospital.glb), not the placeholder.
+  await expect.poll(() => page.evaluate(() => window.__medassetModelRooms?.() ?? 0), { timeout: 30_000 }).toBe(16);
 
   const ground = await one<{ dnu: number; total: number }>(sql`
     select count(*) filter (where s.display_status = 'do_not_use')::int as dnu, count(*)::int as total

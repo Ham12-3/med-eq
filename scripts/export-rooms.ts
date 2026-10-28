@@ -8,7 +8,7 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { buildSeedData } from "@/db/seed/build";
-import { CORRIDOR_WIDTH, WALL_HEIGHT, layoutFloor } from "@/lib/map/layout";
+import { CORRIDOR_WIDTH, WALL_HEIGHT, floorNodeName, layoutFloor } from "@/lib/map/layout";
 
 const data = buildSeedData("2026-10-27");
 const mm = (v: number) => Math.round(v * 1000) / 1000;
@@ -24,7 +24,7 @@ const floors = data.floors.map((f) => {
       })),
   );
   return {
-    nodeName: `floor_${building.code}_L${f.level}`,
+    nodeName: floorNodeName(building.code, f.level),
     building: { code: building.code, name: building.name },
     level: f.level,
     name: f.name,

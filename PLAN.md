@@ -777,7 +777,7 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
 ### M5: 3D map (Phase 8)
 
 1. **Placeholder map, built in the app.** The floor plan is generated in three.js from the `rooms` table (corridor position and side give a grid), with instanced markers coloured by status, a legend, and pulse plus icon for overdue and recalled. This proves the idea before any Blender work.
-2. **Real building model.** Swap in `public/models/hospital.glb` once Phase 5 exports it. Room meshes are found by `room_<GLN>`. *(The .glb is ready since A1; the swap in the app is still to do.)*
+2. **Real building model.** Swap in `public/models/hospital.glb` once Phase 5 exports it. Room meshes are found by `room_<GLN>`.
 3. **Interaction.** Hover tooltip, click to fly the camera there, side panel with the detailed device `.glb`, filters, "Show recall" mode.
 4. **Performance.** First view under 3 s and 60 fps while orbiting, measured and reported. A list-view equivalent for every map action.
 
@@ -793,6 +793,16 @@ Each step is small, ends with green tests, and gets a check before moving on. Th
   - "Show recall" for any safety notice: only matched devices show, each with its standing on the notice, and the floor buttons show where they are.
   - Devices left out by a filter stay as grey dots, in the same place.
 - **Still to do:** the detailed device `.glb` viewer (needs the art track's models).
+
+**Step 2 done (28 Oct 2026).** The map draws its rooms from `public/models/hospital.glb` (art track A1).
+
+- **How a room is found.** Each floor's data now carries its model node, `floor_<BUILDING>_L<level>` (`floorNodeName()` in `lib/map/layout.ts`). Under it, each room is looked up by `room_<GLN>`.
+- **The layout still decides where rooms go.** Each model room is placed at the position `layoutFloor` gives it, so markers always land inside, even if the model is out of date.
+- **Placeholders as a safety net.** A room keeps its placeholder boxes if the model lacks it or has it as another room type, while the model loads, and if the model fails to load (an error boundary).
+- **Shared, not copied.** Room copies share the loaded geometry and materials, take no part in pointer picking, and are never disposed on a floor switch. The corridor and room labels are still drawn by the app.
+- **Draco decoder served locally.** It lives in `public/draco/`, copied from `three/examples/jsm/libs/draco/gltf`; drei's default would fetch it from Google's CDN. Copy it again after a `three` upgrade. The proxy lets `.wasm` through as a static file, and ESLint skips the folder.
+- **Checked:** all 16, 14 and 10 rooms come from the model on the three floors, with no console errors. `e2e/map.spec.ts` asserts the ground-floor count through a development-only probe, `window.__medassetModelRooms()`.
+- **Not re-measured.** The first-frame and frame-rate numbers below predate the model. The model is 78 KB plus a 250 KB decoder, loaded after the first frame.
 
 **Step 4 measured (27 Oct 2026)** with `pnpm map:measure`. The test is a production build on this laptop, the Main Building ground floor (208 devices), 3 runs, a 1366 × 768 window, and a 3-second drag to orbit.
 

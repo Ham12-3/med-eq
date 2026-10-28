@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildSeedData } from "@/db/seed/build";
-import { layoutFloor } from "@/lib/map/layout";
+import { floorNodeName, layoutFloor } from "@/lib/map/layout";
 
 type GltfNode = { name?: string; children?: number[]; translation?: number[]; extras?: Record<string, unknown> };
 
@@ -28,7 +28,7 @@ describe("public/models/hospital.glb", () => {
 
   for (const floor of data.floors) {
     const building = data.buildings.find((b) => b.id === floor.buildingId)!;
-    const floorName = `floor_${building.code}_L${floor.level}`;
+    const floorName = floorNodeName(building.code, floor.level);
     const plan = layoutFloor(data.rooms.filter((r) => r.floorId === floor.id).map((r) => ({ ...r, id: r.id ?? r.gln })));
 
     it(`${floorName} holds every seeded room, where the map puts it`, () => {

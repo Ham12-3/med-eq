@@ -34,7 +34,7 @@ async function MapPageBody({ searchParams }: { searchParams: PageProps<"/map">["
     ?? (notice ? floors.find((f) => f.devices > 0) : undefined)
     ?? floors[0];
   if (!floor) return <p className="text-muted-foreground text-sm">No floors are set up.</p>;
-  const { plan, markers, context, counts } = await floorMap(db, floor.id, todayInLondon(), filters);
+  const { plan, modelNode, markers, context, counts } = await floorMap(db, floor.id, todayInLondon(), filters);
   const byRoom = plan.rooms.map((room) => ({ room, devices: markers.filter((m) => m.roomId === room.id) }));
   const filtering = isFiltering(filters);
 
@@ -79,7 +79,7 @@ async function MapPageBody({ searchParams }: { searchParams: PageProps<"/map">["
         ))}
       </nav>
 
-      <MapView key={`${floor.id}-${mapFiltersToQuery(filters)}`} floorId={floor.id} plan={plan} markers={markers} context={context}
+      <MapView key={`${floor.id}-${mapFiltersToQuery(filters)}`} floorId={floor.id} plan={plan} modelNode={modelNode} markers={markers} context={context}
         counts={counts} recall={notice ? { reference: notice.reference, title: notice.title } : null} />
 
       <section aria-label="Devices on this floor, by room" className="flex flex-col gap-2">

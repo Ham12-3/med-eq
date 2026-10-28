@@ -19,6 +19,7 @@ const ICON: Record<MapStatus, typeof Ban> = { recalled: CircleAlert, do_not_use:
 type Props = {
   floorId: string;
   plan: FloorPlan;
+  modelNode: string;
   markers: MapMarker[];
   context: ContextDot[];
   counts: Record<MapStatus, number>;
@@ -26,7 +27,7 @@ type Props = {
   recall: { reference: string; title: string } | null;
 };
 
-export function MapView({ floorId, plan, markers, context, counts, recall }: Props) {
+export function MapView({ floorId, plan, modelNode, markers, context, counts, recall }: Props) {
   const [visible, setVisible] = useState<Record<MapStatus, boolean>>(
     Object.fromEntries(MAP_STATUSES.map((s) => [s, true])) as Record<MapStatus, boolean>,
   );
@@ -38,7 +39,7 @@ export function MapView({ floorId, plan, markers, context, counts, recall }: Pro
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
       <div className="relative h-[60vh] min-h-96 overflow-hidden rounded-lg border" data-testid="floor-map">
-        <FloorMap floorId={floorId} plan={plan} markers={markers} context={context} visible={visible} showLabels={showLabels}
+        <FloorMap floorId={floorId} plan={plan} modelNode={modelNode} markers={markers} context={context} visible={visible} showLabels={showLabels}
           fitKey={fitKey} selectedId={selected?.id ?? null} onSelect={setSelected} onHover={setHover} />
         <Button variant="outline" size="sm" className="bg-background/90 absolute top-2 right-2" onClick={() => { setSelected(null); setFitKey((k) => k + 1); }}>
           Reset view

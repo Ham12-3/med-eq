@@ -5,7 +5,7 @@ import { sql, type SQL } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import type { IsoDate } from "@/lib/dates";
 import type { MapFilters } from "@/lib/map/filters";
-import { layoutFloor, markerSpacing, markerSpots, type FloorPlan, type PlanRoomInput } from "@/lib/map/layout";
+import { floorNodeName, layoutFloor, markerSpacing, markerSpots, type FloorPlan, type PlanRoomInput } from "@/lib/map/layout";
 import { isMapStatus, MAP_STATUSES, type ContextDot, type MapMarker, type MapStatus } from "@/lib/map/status";
 import { REASON_TEXT, type DisplayStatus, type Reason } from "@/lib/rules/assetStatus";
 
@@ -47,6 +47,8 @@ export async function mapFilterOptions(db: Db) {
 
 export type FloorMap = {
   plan: FloorPlan;
+  /** The floor's node in public/models/hospital.glb. */
+  modelNode: string;
   markers: MapMarker[];
   context: ContextDot[];
   counts: Record<MapStatus, number>;
@@ -57,7 +59,9 @@ export type FloorMap = {
  * over every device in the room, so a device keeps its place whatever the filter.
  */
 export async function floorMap(db: Db, floorId: string, today: IsoDate, f: Pick<MapFilters, "model" | "dept" | "notice">): Promise<FloorMap> {
-  const [rooms, devices] = await Promise.all([
+  const [[floor], rooms, devices] = await Promise.all([
+    db.execute<{ code: string; level: number }>(sql`
+      select b.code, fl.level from floors fl join buildings b on b.id = fl.building_id where fl.id = ${floorId}`),
     db.execute<PlanRoomInput>(sql`
       select id, gln, name, room_type as "roomType", corridor_position as "corridorPosition", corridor_side as "corridorSide"
       from rooms where floor_id = ${floorId} and active`),
@@ -99,5 +103,5 @@ export async function floorMap(db: Db, floorId: string, today: IsoDate, f: Pick<
       });
     });
   }
-  return { plan, markers, context, counts };
+  return { plan, modelNode: floorNodeName(floor.code, floor.level), markers, context, counts };
 }

@@ -33,6 +33,11 @@ export type PlanRoom = PlanRoomInput & {
   depth: number; // along z
 };
 
+/** The floor's node in public/models/hospital.glb (art track A1), for example floor_MAIN_L0. */
+export function floorNodeName(buildingCode: string, level: number): string {
+  return `floor_${buildingCode}_L${level}`;
+}
+
 export type FloorPlan = { rooms: PlanRoom[]; corridor: { x: number; z: number; length: number; width: number } };
 
 /** Rooms in corridor order on each side, packed along the corridor, centred on the origin. */

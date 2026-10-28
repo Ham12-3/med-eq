@@ -1,8 +1,8 @@
 "use client";
 
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, useGLTF } from "@react-three/drei";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import type { FloorPlan, PlanRoom } from "@/lib/map/layout";
 import { MAP_STATUSES, MAP_STYLE, type ContextDot, type MapMarker, type MapStatus, type MarkerShape } from "@/lib/map/status";
@@ -10,12 +10,20 @@ import { MAP_STATUSES, MAP_STYLE, type ContextDot, type MapMarker, type MapStatu
 /** The parts of drei's OrbitControls used here. */
 type Orbit = THREE.EventDispatcher<{ start: object }> & { target: THREE.Vector3; update: () => void };
 
-// The placeholder floor plan (PLAN.md M5 step 1), drawn from the rooms table. Each room's
-// group is named room_<GLN>, as in the Blender model that will replace it (M5 step 2).
+// The floor map, laid out from the rooms table (PLAN.md M5 step 1). Each room is drawn from the
+// Blender building, public/models/hospital.glb (M5 step 2), where it is found by room_<GLN>.
+// Placeholder boxes stand in while the model loads, if it fails to load, or for a room
+// the model does not have (yet).
+
+const MODEL_URL = "/models/hospital.glb";
+const DRACO_PATH = "/draco/"; // served from public/, copied from three/examples/jsm/libs/draco/gltf
+useGLTF.preload(MODEL_URL, DRACO_PATH);
 
 export type FloorMapProps = {
   floorId: string;
   plan: FloorPlan;
+  /** The floor's node in the building model, for example floor_MAIN_L0. */
+  modelNode: string;
   markers: MapMarker[];
   /** Devices the filters leave out, drawn as grey dots. */
   context: ContextDot[];
@@ -65,11 +73,21 @@ declare global {
   interface Window {
     /** Development only: where a marker is on screen, so end-to-end tests can point the real mouse at it. */
     __medassetMarkerOnScreen?: (assetId: string) => { x: number; y: number } | null;
+    /** Development only: how many rooms are drawn from the building model, not placeholders. */
+    __medassetModelRooms?: () => number;
   }
 }
 
 function ScreenProbe({ markers }: { markers: MapMarker[] }) {
-  const { camera, gl } = useThree();
+  const { camera, gl, scene } = useThree();
+  useLayoutEffect(() => {
+    window.__medassetModelRooms = () => {
+      let n = 0;
+      scene.traverse((o) => { if (o.userData.fromModel) n++; });
+      return n;
+    };
+    return () => { delete window.__medassetModelRooms; };
+  }, [scene]);
   useLayoutEffect(() => {
     window.__medassetMarkerOnScreen = (assetId) => {
       const m = markers.find((x) => x.id === assetId);
@@ -156,7 +174,7 @@ function FlyTo({ marker }: { marker: MapMarker | null }) {
   return null;
 }
 
-function Scene({ floorId, plan, markers, context, visible, showLabels, selectedId, onSelect, onHover }: FloorMapProps) {
+function Scene({ floorId, plan, modelNode, markers, context, visible, showLabels, selectedId, onSelect, onHover }: FloorMapProps) {
   const selected = markers.find((m) => m.id === selectedId) ?? null;
   return (
     <group name={`floor_${floorId}`}>
@@ -164,7 +182,11 @@ function Scene({ floorId, plan, markers, context, visible, showLabels, selectedI
         <boxGeometry args={[plan.corridor.length, 0.02, plan.corridor.width]} />
         <meshStandardMaterial color="#d4d4d8" />
       </mesh>
-      {plan.rooms.map((room) => <Room key={room.id} room={room} showLabel={showLabels} />)}
+      <ModelBoundary fallback={<PlaceholderRooms rooms={plan.rooms} showLabels={showLabels} />}>
+        <Suspense fallback={<PlaceholderRooms rooms={plan.rooms} showLabels={showLabels} />}>
+          <ModelRooms rooms={plan.rooms} modelNode={modelNode} showLabels={showLabels} />
+        </Suspense>
+      </ModelBoundary>
       {context.length > 0 && <ContextDots key={`${floorId}-context-${context.length}`} dots={context} />}
 
       {MAP_STATUSES.map((status) => {
@@ -186,7 +208,45 @@ function Scene({ floorId, plan, markers, context, visible, showLabels, selectedI
   );
 }
 
-function Room({ room, showLabel }: { room: PlanRoom; showLabel: boolean }) {
+/** Falls back to the placeholder rooms if the building model cannot be loaded. */
+class ModelBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+function PlaceholderRooms({ rooms, showLabels }: { rooms: PlanRoom[]; showLabels: boolean }) {
+  return rooms.map((room) => <Room key={room.id} room={room} showLabel={showLabels} />);
+}
+
+/**
+ * Rooms from the building model, each placed where the layout puts it, so markers always land
+ * inside. A room missing from the model, or modelled as another room type, keeps its placeholder.
+ */
+function ModelRooms({ rooms, modelNode, showLabels }: { rooms: PlanRoom[]; modelNode: string; showLabels: boolean }) {
+  const { scene } = useGLTF(MODEL_URL, DRACO_PATH);
+  const floor = scene.getObjectByName(modelNode);
+  return rooms.map((room) => {
+    const source = floor?.getObjectByName(room.meshName);
+    const model = source?.userData.roomType === room.roomType ? source : undefined;
+    return <Room key={room.id} room={room} showLabel={showLabels} model={model} />;
+  });
+}
+
+function Room({ room, showLabel, model }: { room: PlanRoom; showLabel: boolean; model?: THREE.Object3D }) {
+  // The model's slab and walls, moved to the group's origin. Geometry and materials stay shared
+  // with the loaded file, and the room does not take part in pointer picking.
+  const built = useMemo(() => {
+    if (!model) return null;
+    const copy = model.clone(true);
+    copy.position.set(0, 0, 0);
+    copy.traverse((o) => { o.raycast = () => {}; });
+    return copy;
+  }, [model]);
   const wall = 0.12;
   const height = 0.9; // cut away so devices stay visible from the side
   const walls: [number, number, number, number][] = [
@@ -196,17 +256,21 @@ function Room({ room, showLabel }: { room: PlanRoom; showLabel: boolean }) {
     [room.width / 2, 0, wall, room.depth],
   ];
   return (
-    <group name={room.meshName} position={[room.x, 0, room.z]} userData={{ gln: room.gln, name: room.name }}>
-      <mesh position={[0, 0.03, 0]}>
-        <boxGeometry args={[room.width, 0.06, room.depth]} />
-        <meshStandardMaterial color={ROOM_COLOR[room.roomType] ?? ROOM_COLOR.other} />
-      </mesh>
-      {walls.map(([x, z, w, d], i) => (
-        <mesh key={i} position={[x, height / 2, z]}>
-          <boxGeometry args={[w, height, d]} />
-          <meshStandardMaterial color="#a1a1aa" />
-        </mesh>
-      ))}
+    <group name={room.meshName} position={[room.x, 0, room.z]} userData={{ gln: room.gln, name: room.name, fromModel: !!built }}>
+      {built ? <primitive object={built} dispose={null} /> : (
+        <>
+          <mesh position={[0, 0.03, 0]}>
+            <boxGeometry args={[room.width, 0.06, room.depth]} />
+            <meshStandardMaterial color={ROOM_COLOR[room.roomType] ?? ROOM_COLOR.other} />
+          </mesh>
+          {walls.map(([x, z, w, d], i) => (
+            <mesh key={i} position={[x, height / 2, z]}>
+              <boxGeometry args={[w, height, d]} />
+              <meshStandardMaterial color="#a1a1aa" />
+            </mesh>
+          ))}
+        </>
+      )}
       {showLabel && <RoomLabel text={room.name} position={[0, height + 0.9, -room.depth / 2 + 0.7]} />}
     </group>
   );
