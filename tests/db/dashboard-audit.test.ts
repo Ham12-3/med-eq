@@ -10,6 +10,7 @@ import { dashboardNumbers, technicianWorkload } from "@/lib/data/dashboard";
 import { createNotice } from "@/lib/data/notices";
 import { listOpenJobs } from "@/lib/data/workOrders";
 import { SYSTEM_USER_ID } from "@/db/seed/reference";
+import { addDays } from "@/lib/dates";
 import { REPORTS } from "@/lib/reports/definitions";
 import { connectAsApp, Rollback, rolledBack, TEST_TODAY } from "./helpers";
 
@@ -94,10 +95,20 @@ describe("audit search", () => {
   });
 
   it("keeps date ranges to UK days and filters by user, type and kind", async () => {
-    const day = await audit({ from: TEST_TODAY, to: TEST_TODAY });
+    // The trigger stamps audit rows with the real time, so the seed's rows fall on the day it ran, not on TEST_TODAY.
+    const [{ seededOn, onThatDay }] = await db.execute<{ seededOn: string; onThatDay: number }>(sql`
+      with s as (select (min(occurred_at) at time zone 'Europe/London')::date as d from audit_log)
+      select s.d::text as "seededOn",
+             (select count(*)::int from audit_log al where (al.occurred_at at time zone 'Europe/London')::date = s.d) as "onThatDay"
+      from s`);
+    const day = await audit({ from: seededOn, to: seededOn });
     if (!day.ok) throw new Error(day.message);
-    expect(day.total).toBeGreaterThan(0); // the seed's daily job ran "today"
-    expect(day.entries.every((e) => e.at.startsWith(TEST_TODAY))).toBe(true);
+    expect(day.total).toBeGreaterThan(0);
+    expect(day.total).toBe(onThatDay);
+    expect(day.entries.every((e) => e.at.startsWith(seededOn))).toBe(true);
+    const before = await audit({ to: addDays(seededOn, -1) });
+    if (!before.ok) throw new Error(before.message);
+    expect(before.total).toBe(0);
 
     const updates = await audit({ table: "work_orders", action: "update", user: SYSTEM_USER_ID });
     if (!updates.ok) throw new Error(updates.message);

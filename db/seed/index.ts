@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
-import type { IsoDate } from "@/lib/dates";
+import { fromLondonLocal, type IsoDate } from "@/lib/dates";
 import { runDailyJobIn } from "@/lib/jobs/daily";
 import { withUser, type Db, type Tx } from "../client";
 import * as s from "../schema";
@@ -48,6 +48,7 @@ export async function seedDatabase(db: Db, options: { today: IsoDate; seed?: num
     await tx.execute(sql`select setval('work_order_number_seq', ${data.workOrders.length})`);
     await tx.execute(sql`select setval('location_events_id_seq', ${data.locationEvents.length})`);
     // End as the nightly job would leave things: today's EM scores, and job priorities that use them.
-    await runDailyJobIn(tx, options.today);
+    // Stamped at the start of the seeded day, not by the wall clock, so a later run for that day finds its scores.
+    await runDailyJobIn(tx, options.today, fromLondonLocal(`${options.today}T00:00`)!);
   });
 }
